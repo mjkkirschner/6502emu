@@ -21,9 +21,36 @@ type Simulator struct {
 }
 
 func (sim *Simulator) executeInstruction(instr InstructionData) {
+	//decode operands based on address mode type.
+
 	//lookup opcode execution.
 	InstructionFunctionMap[OPCODE(instr.opcode)](sim)
 }
+
+func (sim *Simulator) incrementPC(inc uint8) {
+	sim.REGISTER_PC = sim.REGISTER_PC + uint16(inc)
+}
+
+//get operands based on address type
+func (sim *Simulator) decodeOperands(instr InstructionData) []struct{} {
+
+	//since these are memory locations negatives usually don't make sense.
+	var a uint8
+	var b uint8
+	switch instr.addressMode {
+	case IMMEDIATE:
+		a = uint8(sim.Memory[sim.REGISTER_PC+1])
+		b = uint8(sim.Memory[sim.REGISTER_PC+2])
+
+	case ABSOLUTE:
+		a = uint8(sim.Memory[sim.Memory[sim.REGISTER_PC+1]])
+		b = uint8(sim.Memory[sim.Memory[sim.REGISTER_PC+2]])
+	}
+
+	//TODO some instructions like branch intructions will need to reinterpert the results
+	//as signed offset numbers.
+}
+
 func (sim *Simulator) Run() {
 	//fetch
 	//get instruction at program counter
@@ -48,8 +75,15 @@ const (
 
 type OPCODE int
 
+//todo consider using memonic or different name for each opcode with addressing...
+//or to try to centralize decode logic of operands. - see trial in decodeOperands() function
+const (
+	ADDWITHCARRY_OPCODE_IMM = 105
+	ADDWITHCARRY_OPCODE_ZP  = 101
+)
+
 var InstructionFunctionMap = map[OPCODE]func(sim *Simulator){
-	OPCODE(105): func(sim *Simulator) {
+	ADDWITHCARRY_OPCODE_IMM: func(sim *Simulator) {
 		sim.Register_A = sim.Register_A + 1
 	},
 }
