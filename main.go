@@ -124,60 +124,71 @@ func (sim *Simulator) decodeOperands(instr InstructionData) []interface{} {
 		outputOperands = append(outputOperands, a)
 
 	case ZEROPAGE_INDEXEDX:
-		a = uint8(sim.Memory[sim.Memory[sim.REGISTER_PC+1]])
-		b = sim.REGISTER_X
+		a = uint8(sim.Memory[sim.Memory[sim.REGISTER_PC+1]+sim.REGISTER_X])
 		outputOperands = append(outputOperands, a+b)
 
 	//address at absolute 16bit address
 	case ABSOLUTE:
 		//a will be LSB, b will be MSB since 6502 is little endian
-		a = uint8(sim.Memory[sim.Memory[sim.REGISTER_PC+1]])
-		b = uint8(sim.Memory[sim.Memory[sim.REGISTER_PC+2]])
+		a = uint8(sim.Memory[sim.REGISTER_PC+1])
+		b = uint8(sim.Memory[sim.REGISTER_PC+2])
 		//shift msb up 8 then or with a (and with 255 clears any upper  bits...)
 		longaddr = uint16(b)<<8 | (uint16(a) & 0xff)
-		outputOperands = append(outputOperands, longaddr)
+		output := sim.Memory[longaddr]
+		outputOperands = append(outputOperands, output)
 
 	case ABSOLUTE_INDEXEDX:
 
 		//a will be LSB, b will be MSB since 6502 is little endian
-		a = uint8(sim.Memory[sim.Memory[sim.REGISTER_PC+1]])
-		b = uint8(sim.Memory[sim.Memory[sim.REGISTER_PC+2]])
+		a = uint8(sim.Memory[sim.REGISTER_PC+1])
+		b = uint8(sim.Memory[sim.REGISTER_PC+2])
 		//shift msb up 8 then or with a (and with 255 clears any upper  bits...)
 		longaddr = uint16(b)<<8 | (uint16(a) & 0xff)
 		b = sim.REGISTER_X
-		outputOperands = append(outputOperands, longaddr+uint16(b))
+		longaddr = longaddr + uint16(b)
+		output := sim.Memory[longaddr]
+		outputOperands = append(outputOperands, output)
 
 	case ABSOLUTE_INDEXEDY:
 		//a will be LSB, b will be MSB since 6502 is little endian
-		a = uint8(sim.Memory[sim.Memory[sim.REGISTER_PC+1]])
-		b = uint8(sim.Memory[sim.Memory[sim.REGISTER_PC+2]])
+		a = uint8(sim.Memory[sim.REGISTER_PC+1])
+		b = uint8(sim.Memory[sim.REGISTER_PC+2])
 		//shift msb up 8 then or with a (and with 255 clears any upper  bits...)
 		longaddr = uint16(b)<<8 | (uint16(a) & 0xff)
 		b = sim.REGISTER_Y
-		outputOperands = append(outputOperands, longaddr+uint16(b))
+		longaddr = longaddr + uint16(b)
+		output := sim.Memory[longaddr]
+		outputOperands = append(outputOperands, output)
 
 	case INDEXED_INDIRECT_X:
+		//zp address
+		a = uint8(sim.Memory[sim.REGISTER_PC+1])
+		//then offset by x
+		addr := a + sim.REGISTER_X
 
-		//a will be LSB, b will be MSB since 6502 is little endian
-		a = uint8(sim.Memory[sim.Memory[sim.REGISTER_PC+1]])
-		b = uint8(sim.Memory[sim.Memory[sim.REGISTER_PC+2]])
-		//shift msb up 8 then or with a (and with 255 clears any upper  bits...)
-		longaddr = uint16(b)<<8 | (uint16(a) & 0xff)
-
-		//but first - add x
-		longaddr = longaddr + uint16(sim.REGISTER_X)
-
-		//now we indirect.
-		lowbyte := sim.Memory[longaddr]
-		highByte := sim.Memory[longaddr+1]
+		//get address at a+x
+		lowbyte := sim.Memory[addr]
+		highByte := sim.Memory[addr+1]
 		//now combine bytes highLow and return that as the final address for the jump
 		longaddr = uint16(highByte)<<8 | (uint16(lowbyte) & 0xff)
-		outputOperands = append(outputOperands, longaddr)
+		//now indirect
+		output := sim.Memory[longaddr]
+		outputOperands = append(outputOperands, output)
 
 	case INDIRECT_INDEXED_Y:
-		//TODO???? MJK
+		//zp address indirect
+		a = uint8(sim.Memory[sim.REGISTER_PC+1])
 
-		//only JMP will use this address mode.
+		//get address at a+x
+		lowbyte := sim.Memory[a]
+		highByte := sim.Memory[a+1]
+		//now combine bytes highLow and return that as the final address for the jump
+		longaddr = uint16(highByte)<<8 | (uint16(lowbyte) & 0xff) + uint16(sim.REGISTER_Y)
+		//now indirect
+		output := sim.Memory[longaddr]
+		outputOperands = append(outputOperands, output)
+
+		//only JMP will use INDIRECT this address mode.
 	case INDIRECT:
 		//a will be LSB, b will be MSB since 6502 is little endian
 		a = uint8(sim.Memory[sim.Memory[sim.REGISTER_PC+1]])
