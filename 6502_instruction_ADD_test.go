@@ -19,6 +19,37 @@ func TestAddWithCarryImmediate(t *testing.T) {
 	}
 }
 
+func TestAddWithCarryImmediateSignedNumbers(t *testing.T) {
+	sim := NewSimulatorFromInstructionData()
+	sim.Memory[0] = ADDWITHCARRY_OPCODE_IMM
+	sim.Memory[1] = 251 //signed -5
+	sim.Memory[2] = ADDWITHCARRY_OPCODE_IMM
+	sim.Memory[3] = 251 //signed -5
+	//clear the carry before adding 10 because 251+251 generates carry
+	sim.Memory[4] = CLC_OPCODE
+	sim.Memory[5] = ADDWITHCARRY_OPCODE_IMM
+	sim.Memory[6] = 10
+	if sim.Register_A != 0 {
+		t.FailNow()
+	}
+
+	sim.Run(1)
+	//0 - 5 = -5
+	if sim.Register_A != 251 {
+		t.FailNow()
+	}
+	sim.Run(1)
+	//-5 + -5 = -10
+	if sim.Register_A != 246 {
+		t.FailNow()
+	}
+	sim.Run(2)
+	//-10 + 10 = 0
+	if sim.Register_A != 0 {
+		t.FailNow()
+	}
+}
+
 func TestAddWithCarryABS(t *testing.T) {
 	sim := NewSimulatorFromInstructionData()
 	sim.Memory[0] = 0x6d
@@ -156,7 +187,7 @@ func TestAddWithCarryINDY(t *testing.T) {
 	sim.Run(1)
 
 	if sim.Register_A != 111 {
-		t.Log("a not correct", a)
+		t.Log("a not correct", sim.Register_A)
 		t.FailNow()
 	}
 }
@@ -175,10 +206,10 @@ func TestAddWithCarryImmediateFlags(t *testing.T) {
 
 	sim.Run(2)
 	//carry should be high
-	if sim.GetBit(REGISTER_STATUS, BITFLAG_STATUS_CARRY) != 1 {
+	if sim.GetBit(REGISTER_STATUS, BITFLAG_STATUS_CARRY) != true {
 		t.FailNow()
 	}
-	if sim.GetBit(REGISTER_STATUS, BITFLAG_STATUS_OVERFLOW) != 0 {
+	if sim.GetBit(REGISTER_STATUS, BITFLAG_STATUS_OVERFLOW) != false {
 		t.FailNow()
 	}
 	//5+255 rolls over to 256 + 4
@@ -187,11 +218,11 @@ func TestAddWithCarryImmediateFlags(t *testing.T) {
 	}
 	sim.Run(1)
 	//carry should clear
-	if sim.GetBit(REGISTER_STATUS, BITFLAG_STATUS_CARRY) != 0 {
+	if sim.GetBit(REGISTER_STATUS, BITFLAG_STATUS_CARRY) != false {
 		t.FailNow()
 	}
 
-	if sim.GetBit(REGISTER_STATUS, BITFLAG_STATUS_OVERFLOW) != 0 {
+	if sim.GetBit(REGISTER_STATUS, BITFLAG_STATUS_OVERFLOW) != false {
 		t.FailNow()
 	}
 }

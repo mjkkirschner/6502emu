@@ -76,26 +76,26 @@ func (sim *Simulator) ClearBit(reg REGISTER, bit uint) {
 	}
 }
 
-func (sim *Simulator) GetBit(reg REGISTER, bit uint) uint8 {
+func (sim *Simulator) GetBit(reg REGISTER, bit uint) bool {
 
 	switch reg {
 	case REGISTER_A:
-		return sim.Register_A & (1 << bit)
+		return sim.Register_A&(1<<bit) > 0
 
 	case REGISTER_STACKPOINTER:
-		return sim.REGISTER_STACKPOINTER & (1 << bit)
+		return sim.REGISTER_STACKPOINTER&(1<<bit) > 0
 
 	case REGISTER_X:
-		return sim.REGISTER_X & (1 << bit)
+		return sim.REGISTER_X&(1<<bit) > 0
 
 	case REGISTER_Y:
-		return sim.REGISTER_Y & (1 << bit)
+		return sim.REGISTER_Y&(1<<bit) > 0
 
 	case REGISTER_STATUS:
-		return sim.REGISTER_STATUS_P & (1 << bit)
+		return sim.REGISTER_STATUS_P&(1<<bit) > 0
 	}
 	log.Fatal("unhandled register in get bit")
-	return 255
+	return false
 }
 
 func (sim *Simulator) incrementPC(inc uint8) {
@@ -231,78 +231,6 @@ func (sim *Simulator) Run(instructions uint) {
 	}
 }
 
-type REGISTER int
-
-const (
-	REGISTER_A            REGISTER = 100
-	REGISTER_X            REGISTER = 200
-	REGISTER_Y            REGISTER = 300
-	REGISTER_PC           REGISTER = 400
-	REGISTER_STACKPOINTER REGISTER = 500
-	REGISTER_STATUS       REGISTER = 600
-
-	BITFLAG_STATUS_CARRY             = 0
-	BITFLAG_STATUS_ZERO              = 1
-	BITFLAG_STATUS_INTERRUPT_DISABLE = 2
-	BITFLAG_STATUS_DECIMAL           = 3
-	BITFLAG_STATUS_B_FLAG            = 4
-	BITFLAG_STATUS_OVERFLOW          = 5
-	BITFLAG_STATUS_NEGATIVE          = 6
-)
-
-type OPCODE int
-
-//todo consider using memonic or different name for each opcode with addressing...
-//or to try to centralize decode logic of operands. - see trial in decodeOperands() function
-const (
-	ADDWITHCARRY_OPCODE_IMM  = 105
-	ADDWITHCARRY_OPCODE_ZP   = 101
-	ADDWITHCARRY_OPCODE_ZPX  = 0x75
-	ADDWITHCARRY_OPCODE_ABS  = 0x6d
-	ADDWITHCARRY_OPCODE_ABSX = 0x7d
-	ADDWITHCARRY_OPCODE_ABSY = 0x79
-	ADDWITHCARRY_OPCODE_INDX = 0x61
-	ADDWITHCARRY_OPCODE_INDY = 0x71
-)
-
-func INSTRUCTION_ADC_IMPLEMENTATION(sim *Simulator, operands []interface{}, instruction InstructionData) {
-	//calculate the result.
-	a := sim.Register_A
-	b := (operands[0]).(uint8)
-	c := sim.GetBit(REGISTER_STATUS, BITFLAG_STATUS_CARRY)
-	sum := sim.Register_A + b + c
-
-	carryCheck := uint16(a) + uint16(b) + uint16(c)
-	overFlowCheck := (a ^ sum) & (b ^ sum) & 0x80 //negative bit.
-
-	sim.Register_A = sim.Register_A + b + c
-	//if the addition resulted in an overflow carry should be set to 1 - if not carry should be reset to 0.
-	if carryCheck > 255 {
-		sim.SetBit(REGISTER_STATUS, BITFLAG_STATUS_CARRY)
-	} else {
-		sim.ClearBit(REGISTER_STATUS, BITFLAG_STATUS_CARRY)
-	}
-	//overflow occurs when signed arithmetic overflows.
-	if overFlowCheck == 1 {
-		sim.SetBit(REGISTER_STATUS, BITFLAG_STATUS_OVERFLOW)
-	} else {
-		sim.ClearBit(REGISTER_STATUS, BITFLAG_STATUS_OVERFLOW)
-	}
-	//zero flag if result is 0
-	if sim.Register_A == 0 {
-		sim.SetBit(REGISTER_STATUS, BITFLAG_STATUS_ZERO)
-	} else {
-		sim.ClearBit(REGISTER_STATUS, BITFLAG_STATUS_ZERO)
-	}
-	//set n
-	nbit := sim.GetBit(REGISTER_A, 7)
-	if nbit == 1 {
-		sim.SetBit(REGISTER_STATUS, BITFLAG_STATUS_NEGATIVE)
-	} else {
-		sim.ClearBit(REGISTER_STATUS, BITFLAG_STATUS_NEGATIVE)
-	}
-}
-
 var InstructionFunctionMap = map[OPCODE]func(sim *Simulator, operands []interface{}, instruction InstructionData){
 	//TODO the code below should be the same for all ADC commands regardless of address mode I think - share it.
 	ADDWITHCARRY_OPCODE_IMM:  INSTRUCTION_ADC_IMPLEMENTATION,
@@ -313,58 +241,17 @@ var InstructionFunctionMap = map[OPCODE]func(sim *Simulator, operands []interfac
 	ADDWITHCARRY_OPCODE_ABSY: INSTRUCTION_ADC_IMPLEMENTATION,
 	ADDWITHCARRY_OPCODE_INDX: INSTRUCTION_ADC_IMPLEMENTATION,
 	ADDWITHCARRY_OPCODE_INDY: INSTRUCTION_ADC_IMPLEMENTATION,
-}
 
-type ADDRESS_MODE uint8
+	AND_OPCODE_IMM:  INSTRUCTION_AND_IMPLEMENTATION,
+	AND_OPCODE_ZP:   INSTRUCTION_AND_IMPLEMENTATION,
+	AND_OPCODE_ZPX:  INSTRUCTION_AND_IMPLEMENTATION,
+	AND_OPCODE_ABS:  INSTRUCTION_AND_IMPLEMENTATION,
+	AND_OPCODE_ABSX: INSTRUCTION_AND_IMPLEMENTATION,
+	AND_OPCODE_ABSY: INSTRUCTION_AND_IMPLEMENTATION,
+	AND_OPCODE_INDX: INSTRUCTION_AND_IMPLEMENTATION,
+	AND_OPCODE_INDY: INSTRUCTION_AND_IMPLEMENTATION,
 
-const (
-	IMMEDIATE   ADDRESS_MODE = 0
-	ABSOLUTE    ADDRESS_MODE = 1
-	ZEROPAGE    ADDRESS_MODE = 2
-	ACCUMULATOR ADDRESS_MODE = 3
-	IMPLIED     ADDRESS_MODE = 4
-	RELATIVE    ADDRESS_MODE = 5
-	INDIRECT    ADDRESS_MODE = 6
-
-	ABSOLUTE_INDEXEDX  ADDRESS_MODE = 8
-	ABSOLUTE_INDEXEDY  ADDRESS_MODE = 9
-	ZEROPAGE_INDEXEDX  ADDRESS_MODE = 10
-	INDEXED_INDIRECT_X ADDRESS_MODE = 12
-	INDIRECT_INDEXED_Y ADDRESS_MODE = 13
-)
-
-var ADDRESS_MODE_NAME_MAP = map[ADDRESS_MODE]string{
-	IMMEDIATE:          "IMM",
-	ABSOLUTE:           "ABS",
-	ZEROPAGE:           "ZP",
-	ACCUMULATOR:        "ACC",
-	IMPLIED:            "IMP",
-	RELATIVE:           "REL",
-	INDIRECT:           "IND",
-	ABSOLUTE_INDEXEDX:  "ABSX",
-	ABSOLUTE_INDEXEDY:  "ABSY",
-	ZEROPAGE_INDEXEDX:  "ZPX",
-	INDEXED_INDIRECT_X: "INDX",
-	INDIRECT_INDEXED_Y: "INDY",
-}
-
-type InstructionData struct {
-	opcode      OPCODE
-	mnemonic    string
-	addressMode ADDRESS_MODE
-	bytes       uint8
-	cycles      uint8
-	flags       flagsEffected
-}
-
-type flagsEffected struct {
-	carry           bool
-	zero            bool
-	interuptDisable bool
-	decimal         bool
-	bflag           bool
-	overflowV       bool
-	negative        bool
+	CLC_OPCODE: INSTRUCTION_CLC_IMPLEMENTATION,
 }
 
 func newFlagsEffected(str string) *flagsEffected {
@@ -392,9 +279,6 @@ func newFlagsEffected(str string) *flagsEffected {
 	}
 	return &f
 }
-
-//casting unsigned int 256 to signed int should yield -127.
-var a uint = 255
 
 func GenerateInstructionMap(filePath string) map[OPCODE]InstructionData {
 	f, err := os.Open(filePath)
