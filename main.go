@@ -29,6 +29,9 @@ func (sim *Simulator) executeInstruction(instr InstructionData) {
 	operands := sim.decodeOperands(instr)
 	//lookup opcode execution.
 	opFunc := InstructionFunctionMap[OPCODE(instr.opcode)]
+	if opFunc == nil {
+		log.Fatal("no implementation for ", instr.mnemonic, " ", ADDRESS_MODE_NAME_MAP[instr.addressMode])
+	}
 
 	//execute
 	opFunc(sim, operands, instr)
@@ -98,18 +101,34 @@ func (sim *Simulator) GetBit(reg REGISTER, bit uint) bool {
 	return false
 }
 
+func GetBit(value uint, bit uint) bool {
+	return (1 << bit) > 0
+}
+
 func (sim *Simulator) incrementPC(inc uint8) {
 	sim.REGISTER_PC = sim.REGISTER_PC + uint16(inc)
 }
 
+type decodeResults struct {
+	operands []interface{}
+	//for some operations which do not have implicit return locations
+	//or registers, this address stores the return address of the operation
+	//where computed results go.
+	//for example - ASL can shift values
+	returnAddress uint16
+}
+
 //get operands based on address type
-func (sim *Simulator) decodeOperands(instr InstructionData) []interface{} {
+func (sim *Simulator) decodeOperands(instr InstructionData) decodeResults {
 
 	//since these are memory locations negatives usually don't make sense.
 	var a uint8
 	var b uint8
 	var longaddr uint16
 	outputOperands := make([]interface{}, 0)
+	//return address only makes sense in the context of some instructions...
+	//for now we'll just set it to the final address before we get the value.
+	var returnAddress uint16 = 0
 
 	switch instr.addressMode {
 	//load 8bit constants into memory.
@@ -120,12 +139,16 @@ func (sim *Simulator) decodeOperands(instr InstructionData) []interface{} {
 		outputOperands = append(outputOperands, a, b)
 
 	case ZEROPAGE:
-		a = uint8(sim.Memory[sim.Memory[sim.REGISTER_PC+1]])
+		x0 := sim.Memory[sim.REGISTER_PC+1]
+		a = uint8(sim.Memory[x0])
 		outputOperands = append(outputOperands, a)
+		returnAddress = uint16(x0)
 
 	case ZEROPAGE_INDEXEDX:
-		a = uint8(sim.Memory[sim.Memory[sim.REGISTER_PC+1]+sim.REGISTER_X])
+		x0 := sim.Memory[sim.REGISTER_PC+1] + sim.REGISTER_X
+		a = uint8(sim.Memory[x0])
 		outputOperands = append(outputOperands, a+b)
+		returnAddress = uint16(x0)
 
 	//address at absolute 16bit address
 	case ABSOLUTE:
@@ -136,6 +159,7 @@ func (sim *Simulator) decodeOperands(instr InstructionData) []interface{} {
 		longaddr = uint16(b)<<8 | (uint16(a) & 0xff)
 		output := sim.Memory[longaddr]
 		outputOperands = append(outputOperands, output)
+		returnAddress = longaddr
 
 	case ABSOLUTE_INDEXEDX:
 
@@ -148,6 +172,7 @@ func (sim *Simulator) decodeOperands(instr InstructionData) []interface{} {
 		longaddr = longaddr + uint16(b)
 		output := sim.Memory[longaddr]
 		outputOperands = append(outputOperands, output)
+		returnAddress = longaddr
 
 	case ABSOLUTE_INDEXEDY:
 		//a will be LSB, b will be MSB since 6502 is little endian
@@ -205,12 +230,13 @@ func (sim *Simulator) decodeOperands(instr InstructionData) []interface{} {
 
 	case RELATIVE:
 	case ACCUMULATOR:
+		outputOperands = append(outputOperands, sim.Register_A)
 	case IMPLIED:
 
 		//TODO some instructions like branch intructions will need to reinterpert the results
 		//as signed offset numbers.
 	}
-	return outputOperands
+	return decodeResults{outputOperands, returnAddress}
 }
 func (sim *Simulator) SingleStep() {
 	//fetch
@@ -231,7 +257,7 @@ func (sim *Simulator) Run(instructions uint) {
 	}
 }
 
-var InstructionFunctionMap = map[OPCODE]func(sim *Simulator, operands []interface{}, instruction InstructionData){
+var InstructionFunctionMap = map[OPCODE]func(sim *Simulator, operands decodeResults, instruction InstructionData){
 	//TODO the code below should be the same for all ADC commands regardless of address mode I think - share it.
 	ADDWITHCARRY_OPCODE_IMM:  INSTRUCTION_ADC_IMPLEMENTATION,
 	ADDWITHCARRY_OPCODE_ZP:   INSTRUCTION_ADC_IMPLEMENTATION,

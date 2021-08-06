@@ -1,9 +1,9 @@
 package main
 
-func INSTRUCTION_AND_IMPLEMENTATION(sim *Simulator, operands []interface{}, instruction InstructionData) {
+func INSTRUCTION_AND_IMPLEMENTATION(sim *Simulator, operands decodeResults, instruction InstructionData) {
 	//calculate binary AND of accumulator and operand and store result in accumulator.
 	a := sim.Register_A
-	b := (operands[0]).(uint8)
+	b := operands.operands[0].(uint8)
 	c := a & b
 	sim.Register_A = c
 	//TODO factor out into shared util.
@@ -21,10 +21,10 @@ func INSTRUCTION_AND_IMPLEMENTATION(sim *Simulator, operands []interface{}, inst
 	}
 }
 
-func INSTRUCTION_ADC_IMPLEMENTATION(sim *Simulator, operands []interface{}, instruction InstructionData) {
+func INSTRUCTION_ADC_IMPLEMENTATION(sim *Simulator, operands decodeResults, instruction InstructionData) {
 	//calculate the result.
 	a := sim.Register_A
-	b := (operands[0]).(uint8)
+	b := operands.operands[0].(uint8)
 	c := btou(sim.GetBit(REGISTER_STATUS, BITFLAG_STATUS_CARRY))
 	sum := sim.Register_A + b + c
 
@@ -44,21 +44,33 @@ func INSTRUCTION_ADC_IMPLEMENTATION(sim *Simulator, operands []interface{}, inst
 	} else {
 		sim.ClearBit(REGISTER_STATUS, BITFLAG_STATUS_OVERFLOW)
 	}
-	//zero flag if result is 0
-	if sim.Register_A == 0 {
-		sim.SetBit(REGISTER_STATUS, BITFLAG_STATUS_ZERO)
-	} else {
-		sim.ClearBit(REGISTER_STATUS, BITFLAG_STATUS_ZERO)
-	}
-	//set n
-	nbit := sim.GetBit(REGISTER_A, 7)
-	if nbit {
-		sim.SetBit(REGISTER_STATUS, BITFLAG_STATUS_NEGATIVE)
-	} else {
-		sim.ClearBit(REGISTER_STATUS, BITFLAG_STATUS_NEGATIVE)
-	}
+	sim.computeZeroFlag(sim.Register_A)
+	sim.computeNegativeFlag(sim.Register_A)
 }
 
-func INSTRUCTION_CLC_IMPLEMENTATION(sim *Simulator, operands []interface{}, instruction InstructionData) {
+func INSTRUCTION_CLC_IMPLEMENTATION(sim *Simulator, operands decodeResults, instruction InstructionData) {
 	sim.ClearBit(REGISTER_STATUS, BITFLAG_STATUS_CARRY)
+}
+func INSTRUCTION_ASL_IMPLEMENTATION(sim *Simulator, operands decodeResults, instruction InstructionData) {
+	//I think we'll only ever have operand A.
+	//to determine where to store the result, check the returnAddress if it exists.
+	var result uint8 = 0
+	//grab the value we need to shift left.
+	a := operands.operands[0].(uint8)
+	carrycheck := a&128 > 0
+	result = a << 1
+	switch instruction.addressMode {
+	case ACCUMULATOR:
+
+		sim.Register_A = result
+
+		return
+	//should cover all other cases
+	default:
+		sim.Memory[operands.returnAddress] = result
+	}
+	sim.computeCarryFlag(carrycheck)
+	sim.computeZeroFlag(result)
+	sim.computeNegativeFlag(result)
+
 }
