@@ -164,3 +164,37 @@ func INSTRUCTION_BIT_IMPLEMENTATION(sim *Simulator, operands decodeResults, inst
 		sim.ClearBit(REGISTER_STATUS, BITFLAG_STATUS_NEGATIVE)
 	}
 }
+
+func INSTRUCTION_BRK_IMPLEMENTATION(sim *Simulator, operands decodeResults, instruction InstructionData) {
+	//push program counter to stack
+
+	stackRegionStart := sim.Memory[memoryMap["STACK"].start]
+	addrlow := stackRegionStart + sim.REGISTER_STACKPOINTER
+
+	sim.Memory[addrlow] = uint8(sim.REGISTER_PC & 0x00ff)
+	//decrement sp
+	sim.REGISTER_STACKPOINTER = sim.REGISTER_STACKPOINTER - 1
+
+	addrhigh := stackRegionStart + sim.REGISTER_STACKPOINTER
+	sim.Memory[addrhigh] = uint8((sim.REGISTER_PC >> 8) & 0xff)
+
+	//decrement sp
+	sim.REGISTER_STACKPOINTER = sim.REGISTER_STACKPOINTER - 1
+
+	//push status reg to stack
+	addrForStatus := stackRegionStart + sim.REGISTER_STACKPOINTER
+	sim.Memory[addrForStatus] = sim.REGISTER_STATUS_P
+
+	//decrement sp
+	sim.REGISTER_STACKPOINTER = sim.REGISTER_STACKPOINTER - 1
+	//load IRQ vector from FFFE/F to pc
+
+	addrlow = sim.Memory[0xFFFE]
+	addrhigh = sim.Memory[0xFFFF]
+	longaddr := uint16(addrhigh)<<8 | (uint16(addrlow) & 0xff)
+	sim.REGISTER_PC = longaddr
+	//set break flag high
+	sim.SetBit(REGISTER_STATUS, BITFLAG_STATUS_B_FLAG)
+	//TODO unsure if this should be true. BRK should jump to the interupt request handler -right?
+	sim.X_JUMPING = true
+}

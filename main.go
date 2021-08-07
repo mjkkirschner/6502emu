@@ -308,6 +308,8 @@ var InstructionFunctionMap = map[OPCODE]func(sim *Simulator, operands decodeResu
 
 	BIT_OPCODE_ZP:  INSTRUCTION_BIT_IMPLEMENTATION,
 	BIT_OPCODE_ABS: INSTRUCTION_BIT_IMPLEMENTATION,
+
+	BRK_OPCODE: INSTRUCTION_BRK_IMPLEMENTATION,
 }
 
 func newFlagsEffected(str string) *flagsEffected {

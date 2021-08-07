@@ -62,6 +62,8 @@ const (
 
 	BIT_OPCODE_ZP  = 0x24
 	BIT_OPCODE_ABS = 0x2c
+
+	BRK_OPCODE = 0x00
 )
 
 type ADDRESS_MODE uint8
@@ -114,4 +116,13 @@ type flagsEffected struct {
 	bflag           bool
 	overflowV       bool
 	negative        bool
+}
+
+type memoryRegion struct {
+	start uint16
+	end   uint16
+}
+
+var memoryMap = map[string]memoryRegion{
+	"STACK": {0x100, 0x1FF},
 }
