@@ -61,10 +61,7 @@ func INSTRUCTION_ASL_IMPLEMENTATION(sim *Simulator, operands decodeResults, inst
 	result = a << 1
 	switch instruction.addressMode {
 	case ACCUMULATOR:
-
 		sim.Register_A = result
-
-		return
 	//should cover all other cases
 	default:
 		sim.Memory[operands.returnAddress] = result
