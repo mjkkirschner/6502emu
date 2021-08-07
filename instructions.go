@@ -39,7 +39,7 @@ func INSTRUCTION_ADC_IMPLEMENTATION(sim *Simulator, operands decodeResults, inst
 		sim.ClearBit(REGISTER_STATUS, BITFLAG_STATUS_CARRY)
 	}
 	//overflow occurs when signed arithmetic overflows.
-	if overFlowCheck == 1 {
+	if overFlowCheck > 0 {
 		sim.SetBit(REGISTER_STATUS, BITFLAG_STATUS_OVERFLOW)
 	} else {
 		sim.ClearBit(REGISTER_STATUS, BITFLAG_STATUS_OVERFLOW)
@@ -141,5 +141,26 @@ func INSTRUCTION_BVS_IMPLEMENTATION(sim *Simulator, operands decodeResults, inst
 		//branch
 		sim.REGISTER_PC = operands.operands[0].(uint16)
 		sim.X_JUMPING = true
+	}
+}
+
+func INSTRUCTION_BIT_IMPLEMENTATION(sim *Simulator, operands decodeResults, instruction InstructionData) {
+
+	m := operands.operands[0].(uint8)
+	and := sim.Register_A & m
+	if and == 0 {
+		sim.SetBit(REGISTER_STATUS, BITFLAG_STATUS_ZERO)
+	}
+	v := GetBit(uint(m), 6)
+	n := GetBit(uint(m), 7)
+	if v {
+		sim.SetBit(REGISTER_STATUS, BITFLAG_STATUS_OVERFLOW)
+	} else {
+		sim.ClearBit(REGISTER_STATUS, BITFLAG_STATUS_OVERFLOW)
+	}
+	if n {
+		sim.SetBit(REGISTER_STATUS, BITFLAG_STATUS_NEGATIVE)
+	} else {
+		sim.ClearBit(REGISTER_STATUS, BITFLAG_STATUS_NEGATIVE)
 	}
 }

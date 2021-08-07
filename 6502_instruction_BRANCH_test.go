@@ -89,7 +89,7 @@ func TestBPL(t *testing.T) {
 	sim := NewSimulatorFromInstructionData()
 	sim.Memory[0] = ADDWITHCARRY_OPCODE_IMM
 	sim.Memory[1] = 1
-	sim.Memory[2] = BMI_OPCODE
+	sim.Memory[2] = BPL_OPCODE
 	sim.Memory[3] = 50
 
 	if sim.REGISTER_PC != 0 {
@@ -105,7 +105,7 @@ func TestBVC(t *testing.T) {
 	sim := NewSimulatorFromInstructionData()
 	sim.Memory[0] = ADDWITHCARRY_OPCODE_IMM
 	sim.Memory[1] = 1
-	sim.Memory[2] = BMI_OPCODE
+	sim.Memory[2] = BVC_OPCODE
 	sim.Memory[3] = 50
 
 	if sim.REGISTER_PC != 0 {
@@ -119,11 +119,11 @@ func TestBVC(t *testing.T) {
 }
 func TestBVS(t *testing.T) {
 	sim := NewSimulatorFromInstructionData()
-	sim.Register_A = 254
+	sim.Register_A = 131 //-125
 	sim.Memory[0] = ADDWITHCARRY_OPCODE_IMM
-	sim.Memory[1] = 254
-	//254(-2) + 254 (-2) leads to a signed overflow add
-	sim.Memory[2] = BMI_OPCODE
+	sim.Memory[1] = 131 //-125
+	//-125 + -125 = -250 (signed overflow, max of -127)
+	sim.Memory[2] = BVS_OPCODE
 	sim.Memory[3] = 50
 
 	if sim.REGISTER_PC != 0 {

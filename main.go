@@ -104,7 +104,7 @@ func (sim *Simulator) GetBit(reg REGISTER, bit uint) bool {
 }
 
 func GetBit(value uint, bit uint) bool {
-	return (1 << bit) > 0
+	return value&(1<<bit) > 0
 }
 
 func (sim *Simulator) incrementPC(inc uint8) {
@@ -270,7 +270,6 @@ func (sim *Simulator) Run(instructions uint) {
 }
 
 var InstructionFunctionMap = map[OPCODE]func(sim *Simulator, operands decodeResults, instruction InstructionData){
-	//TODO the code below should be the same for all ADC commands regardless of address mode I think - share it.
 	ADDWITHCARRY_OPCODE_IMM:  INSTRUCTION_ADC_IMPLEMENTATION,
 	ADDWITHCARRY_OPCODE_ZP:   INSTRUCTION_ADC_IMPLEMENTATION,
 	ADDWITHCARRY_OPCODE_ZPX:  INSTRUCTION_ADC_IMPLEMENTATION,
@@ -306,6 +305,9 @@ var InstructionFunctionMap = map[OPCODE]func(sim *Simulator, operands decodeResu
 	BPL_OPCODE: INSTRUCTION_BPL_IMPLEMENTATION,
 	BVC_OPCODE: INSTRUCTION_BVC_IMPLEMENTATION,
 	BVS_OPCODE: INSTRUCTION_BVS_IMPLEMENTATION,
+
+	BIT_OPCODE_ZP:  INSTRUCTION_BIT_IMPLEMENTATION,
+	BIT_OPCODE_ABS: INSTRUCTION_BIT_IMPLEMENTATION,
 }
 
 func newFlagsEffected(str string) *flagsEffected {

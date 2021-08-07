@@ -59,6 +59,9 @@ const (
 	BPL_OPCODE = 0x10
 	BVC_OPCODE = 0x50
 	BVS_OPCODE = 0x70
+
+	BIT_OPCODE_ZP  = 0x24
+	BIT_OPCODE_ABS = 0x2c
 )
 
 type ADDRESS_MODE uint8
