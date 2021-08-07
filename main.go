@@ -18,6 +18,7 @@ type Simulator struct {
 	REGISTER_STACKPOINTER uint8
 	Instructions          map[OPCODE]InstructionData
 	Memory                []uint8
+	X_JUMPING             bool
 }
 
 func NewSimulator(instructions map[OPCODE]InstructionData) *Simulator {
@@ -25,6 +26,7 @@ func NewSimulator(instructions map[OPCODE]InstructionData) *Simulator {
 }
 
 func (sim *Simulator) executeInstruction(instr InstructionData) {
+
 	//decode operands based on address mode type.
 	operands := sim.decodeOperands(instr)
 	//lookup opcode execution.
@@ -229,6 +231,12 @@ func (sim *Simulator) decodeOperands(instr InstructionData) decodeResults {
 		outputOperands = append(outputOperands, longaddr)
 
 	case RELATIVE:
+		//in the case of relative its a signed byte max of 127, min -127 from pc.
+		//convert to signed.
+		offset := int8(sim.Memory[sim.REGISTER_PC+1])
+		jumpAddr := uint16(offset) + uint16(sim.REGISTER_PC)
+		outputOperands = append(outputOperands, jumpAddr)
+
 	case ACCUMULATOR:
 		outputOperands = append(outputOperands, sim.Register_A)
 	case IMPLIED:
@@ -245,10 +253,14 @@ func (sim *Simulator) SingleStep() {
 
 	//decode
 	instruction := sim.Instructions[OPCODE(currentOP)]
+	//reset jump flag.
+	sim.X_JUMPING = false
 	//execute
 	sim.executeInstruction(instruction)
-
-	sim.incrementPC(instruction.bytes)
+	//if the instruciton set the PC directly, then don't increment it
+	if !sim.X_JUMPING {
+		sim.incrementPC(instruction.bytes)
+	}
 }
 
 func (sim *Simulator) Run(instructions uint) {
@@ -278,12 +290,22 @@ var InstructionFunctionMap = map[OPCODE]func(sim *Simulator, operands decodeResu
 	AND_OPCODE_INDY: INSTRUCTION_AND_IMPLEMENTATION,
 
 	CLC_OPCODE: INSTRUCTION_CLC_IMPLEMENTATION,
+	SEC_OPCODE: INSTRUCTION_SEC_IMPLEMENTATION,
 
 	ASL_OPCODE_ABS:  INSTRUCTION_ASL_IMPLEMENTATION,
 	ASL_OPCODE_ABSX: INSTRUCTION_ASL_IMPLEMENTATION,
 	ASL_OPCODE_ZP:   INSTRUCTION_ASL_IMPLEMENTATION,
 	ASL_OPCODE_ZPX:  INSTRUCTION_ASL_IMPLEMENTATION,
 	ASL_OPCODE_ACC:  INSTRUCTION_ASL_IMPLEMENTATION,
+
+	BCC_OPCODE: INSTRUCTION_BCC_IMPLEMENTATION,
+	BCS_OPCODE: INSTRUCTION_BCS_IMPLEMENTATION,
+	BEQ_OPCODE: INSTRUCTION_BEQ_IMPLEMENTATION,
+	BMI_OPCODE: INSTRUCTION_BMI_IMPLEMENTATION,
+	BNE_OPCODE: INSTRUCTION_BNE_IMPLEMENTATION,
+	BPL_OPCODE: INSTRUCTION_BPL_IMPLEMENTATION,
+	BVC_OPCODE: INSTRUCTION_BVC_IMPLEMENTATION,
+	BVS_OPCODE: INSTRUCTION_BVS_IMPLEMENTATION,
 }
 
 func newFlagsEffected(str string) *flagsEffected {
