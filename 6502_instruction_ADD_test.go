@@ -230,5 +230,10 @@ func TestAddWithCarryImmediateFlags(t *testing.T) {
 func NewSimulatorFromInstructionData() *Simulator {
 	var filePath string = "6502ops.csv"
 	instructions := GenerateInstructionMap(filePath)
-	return NewSimulator(instructions)
+	sim := NewSimulator(instructions)
+	//set reset vector to 0000 because all tests use 0 as start.
+	sim.Memory[0xFFFC] = 0
+	sim.Memory[0xFFFC] = 0
+	sim.reset() //set PC to FFFC/FFFD
+	return sim
 }

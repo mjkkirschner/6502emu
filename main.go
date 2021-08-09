@@ -25,6 +25,15 @@ func NewSimulator(instructions map[OPCODE]InstructionData) *Simulator {
 	return &Simulator{Instructions: instructions, Memory: make([]uint8, 65536)}
 }
 
+func (sim *Simulator) reset() {
+	//read from fffc and fffd
+	//then transfer control.
+	addrlow := sim.Memory[0xFFFC]
+	addrhigh := sim.Memory[0xFFFD]
+	longaddr := uint16(addrhigh)<<8 | (uint16(addrlow) & 0xff)
+	sim.REGISTER_PC = longaddr
+}
+
 func (sim *Simulator) executeInstruction(instr InstructionData) {
 
 	//decode operands based on address mode type.
@@ -310,6 +319,13 @@ var InstructionFunctionMap = map[OPCODE]func(sim *Simulator, operands decodeResu
 	BIT_OPCODE_ABS: INSTRUCTION_BIT_IMPLEMENTATION,
 
 	BRK_OPCODE: INSTRUCTION_BRK_IMPLEMENTATION,
+	CLD_OPCODE: INSTRUCTION_CLD_IMPLEMENTATION,
+	CLI_OPCODE: INSTRUCTION_CLI_IMPLEMENTATION,
+	CLV_OPCODE: INSTRUCTION_CLV_IMPLEMENTATION,
+	NOP_OPCODE: INSTRUCTION_NOP_IMPLEMENTATION,
+
+	PHA_OPCODE: INSTRUCTION_PHA_IMPLEMENTATION,
+	PLA_OPCODE: INSTRUCTION_PLA_IMPLEMENTATION,
 }
 
 func newFlagsEffected(str string) *flagsEffected {

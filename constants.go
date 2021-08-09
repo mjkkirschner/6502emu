@@ -64,6 +64,14 @@ const (
 	BIT_OPCODE_ABS = 0x2c
 
 	BRK_OPCODE = 0x00
+
+	CLD_OPCODE = 0xd8
+	CLI_OPCODE = 0x58
+	CLV_OPCODE = 0xb8
+	NOP_OPCODE = 0xea
+
+	PHA_OPCODE = 0x48
+	PLA_OPCODE = 0x68
 )
 
 type ADDRESS_MODE uint8
