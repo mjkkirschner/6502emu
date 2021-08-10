@@ -48,6 +48,45 @@ func INSTRUCTION_ADC_IMPLEMENTATION(sim *Simulator, operands decodeResults, inst
 	sim.computeNegativeFlag(sim.Register_A)
 }
 
+func INSTRUCTION_TAX_IMPLEMENTATION(sim *Simulator, operands decodeResults, instruction InstructionData) {
+	//calculate the result.
+	a := sim.Register_A
+	sim.REGISTER_X = a
+	sim.computeZeroFlag(sim.Register_A)
+	sim.computeNegativeFlag(sim.Register_A)
+}
+
+func INSTRUCTION_TXA_IMPLEMENTATION(sim *Simulator, operands decodeResults, instruction InstructionData) {
+	//calculate the result.
+	sim.Register_A = sim.REGISTER_X
+	sim.computeZeroFlag(sim.Register_A)
+	sim.computeNegativeFlag(sim.Register_A)
+}
+func INSTRUCTION_TYA_IMPLEMENTATION(sim *Simulator, operands decodeResults, instruction InstructionData) {
+	//calculate the result.
+	sim.Register_A = sim.REGISTER_Y
+	sim.computeZeroFlag(sim.Register_A)
+	sim.computeNegativeFlag(sim.Register_A)
+}
+func INSTRUCTION_TAY_IMPLEMENTATION(sim *Simulator, operands decodeResults, instruction InstructionData) {
+	//calculate the result.
+	sim.REGISTER_Y = sim.Register_A
+	sim.computeZeroFlag(sim.Register_A)
+	sim.computeNegativeFlag(sim.Register_A)
+}
+func INSTRUCTION_TSX_IMPLEMENTATION(sim *Simulator, operands decodeResults, instruction InstructionData) {
+	//calculate the result.
+	sim.REGISTER_X = sim.REGISTER_STACKPOINTER
+	sim.computeZeroFlag(sim.REGISTER_STACKPOINTER)
+	sim.computeNegativeFlag(sim.REGISTER_STACKPOINTER)
+}
+func INSTRUCTION_TXS_IMPLEMENTATION(sim *Simulator, operands decodeResults, instruction InstructionData) {
+	//calculate the result.
+	sim.REGISTER_STACKPOINTER = sim.REGISTER_X
+	sim.computeZeroFlag(sim.REGISTER_STACKPOINTER)
+	sim.computeNegativeFlag(sim.REGISTER_STACKPOINTER)
+}
+
 func INSTRUCTION_CLC_IMPLEMENTATION(sim *Simulator, operands decodeResults, instruction InstructionData) {
 	sim.ClearBit(REGISTER_STATUS, BITFLAG_STATUS_CARRY)
 }
@@ -66,6 +105,12 @@ func INSTRUCTION_NOP_IMPLEMENTATION(sim *Simulator, operands decodeResults, inst
 }
 func INSTRUCTION_SEC_IMPLEMENTATION(sim *Simulator, operands decodeResults, instruction InstructionData) {
 	sim.SetBit(REGISTER_STATUS, BITFLAG_STATUS_CARRY)
+}
+func INSTRUCTION_SED_IMPLEMENTATION(sim *Simulator, operands decodeResults, instruction InstructionData) {
+	sim.SetBit(REGISTER_STATUS, BITFLAG_STATUS_DECIMAL)
+}
+func INSTRUCTION_SEI_IMPLEMENTATION(sim *Simulator, operands decodeResults, instruction InstructionData) {
+	sim.SetBit(REGISTER_STATUS, BITFLAG_STATUS_INTERRUPT_DISABLE)
 }
 
 func INSTRUCTION_ASL_IMPLEMENTATION(sim *Simulator, operands decodeResults, instruction InstructionData) {
@@ -279,4 +324,30 @@ func INSTRUCTION_RTI_IMPLEMENTATION(sim *Simulator, operands decodeResults, inst
 	longaddr := uint16(addrhigh)<<8 | (uint16(addrlow) & 0xff)
 	sim.REGISTER_PC = longaddr
 	sim.X_JUMPING = true
+}
+
+func INSTRUCTION_RTS_IMPLEMENTATION(sim *Simulator, operands decodeResults, instruction InstructionData) {
+	// pull PC-1 from stack.
+	stackRegionStart := sim.Memory[memoryMap["STACK"].start]
+	//increment sp
+	sim.REGISTER_STACKPOINTER = sim.REGISTER_STACKPOINTER + 1
+	//now get program counter
+	stackaddrToPull := stackRegionStart + sim.REGISTER_STACKPOINTER
+	addrlow := sim.Memory[stackaddrToPull]
+	//increment sp
+	sim.REGISTER_STACKPOINTER = sim.REGISTER_STACKPOINTER + 1
+	//now get program counter
+	stackaddrToPull = stackRegionStart + sim.REGISTER_STACKPOINTER
+	addrhigh := sim.Memory[stackaddrToPull]
+	longaddr := uint16(addrhigh)<<8 | (uint16(addrlow) & 0xff)
+	sim.REGISTER_PC = longaddr - 1
+	sim.X_JUMPING = true
+}
+
+func INSTRUCTION_CMP_IMPLEMENTATION(sim *Simulator, operands decodeResults, instruction InstructionData) {
+	m := operands.operands[0].(uint8)
+	b := sim.Register_A - m
+	sim.computeCarryFlag(sim.Register_A >= m)
+	sim.computeNegativeFlag(b)
+	sim.computeZeroFlag(b)
 }
