@@ -351,3 +351,26 @@ func INSTRUCTION_CMP_IMPLEMENTATION(sim *Simulator, operands decodeResults, inst
 	sim.computeNegativeFlag(b)
 	sim.computeZeroFlag(b)
 }
+
+func INSTRUCTION_CPX_IMPLEMENTATION(sim *Simulator, operands decodeResults, instruction InstructionData) {
+	m := operands.operands[0].(uint8)
+	b := sim.REGISTER_X - m
+	sim.computeCarryFlag(sim.REGISTER_X >= m)
+	sim.computeNegativeFlag(b)
+	sim.computeZeroFlag(b)
+}
+
+func INSTRUCTION_CPY_IMPLEMENTATION(sim *Simulator, operands decodeResults, instruction InstructionData) {
+	m := operands.operands[0].(uint8)
+	b := sim.REGISTER_Y - m
+	sim.computeCarryFlag(sim.REGISTER_Y >= m)
+	sim.computeNegativeFlag(b)
+	sim.computeZeroFlag(b)
+}
+
+func INSTRUCTION_DEC_IMPLEMENTATION(sim *Simulator, operands decodeResults, instruction InstructionData) {
+	x := operands.operands[0].(uint8) - 1
+	sim.Memory[operands.returnAddress] = x
+	sim.computeNegativeFlag(x)
+	sim.computeZeroFlag(x)
+}
