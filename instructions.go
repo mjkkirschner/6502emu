@@ -374,3 +374,23 @@ func INSTRUCTION_DEC_IMPLEMENTATION(sim *Simulator, operands decodeResults, inst
 	sim.computeNegativeFlag(x)
 	sim.computeZeroFlag(x)
 }
+func INSTRUCTION_DEX_IMPLEMENTATION(sim *Simulator, operands decodeResults, instruction InstructionData) {
+	sim.REGISTER_X = sim.REGISTER_X - 1
+	sim.computeNegativeFlag(sim.REGISTER_X)
+	sim.computeZeroFlag(sim.REGISTER_X)
+}
+func INSTRUCTION_DEY_IMPLEMENTATION(sim *Simulator, operands decodeResults, instruction InstructionData) {
+	sim.REGISTER_Y = sim.REGISTER_Y - 1
+	sim.computeNegativeFlag(sim.REGISTER_Y)
+	sim.computeZeroFlag(sim.REGISTER_Y)
+}
+func INSTRUCTION_INX_IMPLEMENTATION(sim *Simulator, operands decodeResults, instruction InstructionData) {
+	sim.REGISTER_X = sim.REGISTER_X + 1
+	sim.computeNegativeFlag(sim.REGISTER_X)
+	sim.computeZeroFlag(sim.REGISTER_X)
+}
+func INSTRUCTION_INY_IMPLEMENTATION(sim *Simulator, operands decodeResults, instruction InstructionData) {
+	sim.REGISTER_Y = sim.REGISTER_Y + 1
+	sim.computeNegativeFlag(sim.REGISTER_Y)
+	sim.computeZeroFlag(sim.REGISTER_Y)
+}
