@@ -340,7 +340,7 @@ func INSTRUCTION_RTS_IMPLEMENTATION(sim *Simulator, operands decodeResults, inst
 	stackaddrToPull = stackRegionStart + sim.REGISTER_STACKPOINTER
 	addrhigh := sim.Memory[stackaddrToPull]
 	longaddr := uint16(addrhigh)<<8 | (uint16(addrlow) & 0xff)
-	sim.REGISTER_PC = longaddr - 1
+	sim.REGISTER_PC = longaddr + 1
 	sim.X_JUMPING = true
 }
 
@@ -368,6 +368,13 @@ func INSTRUCTION_CPY_IMPLEMENTATION(sim *Simulator, operands decodeResults, inst
 	sim.computeZeroFlag(b)
 }
 
+func INSTRUCTION_EOR_IMPLEMENTATION(sim *Simulator, operands decodeResults, instruction InstructionData) {
+	m := operands.operands[0].(uint8)
+	sim.Register_A = sim.Register_A ^ m
+	sim.computeNegativeFlag(sim.Register_A)
+	sim.computeZeroFlag(sim.Register_A)
+}
+
 func INSTRUCTION_DEC_IMPLEMENTATION(sim *Simulator, operands decodeResults, instruction InstructionData) {
 	x := operands.operands[0].(uint8) - 1
 	sim.Memory[operands.returnAddress] = x
@@ -391,6 +398,59 @@ func INSTRUCTION_INX_IMPLEMENTATION(sim *Simulator, operands decodeResults, inst
 }
 func INSTRUCTION_INY_IMPLEMENTATION(sim *Simulator, operands decodeResults, instruction InstructionData) {
 	sim.REGISTER_Y = sim.REGISTER_Y + 1
+	sim.computeNegativeFlag(sim.REGISTER_Y)
+	sim.computeZeroFlag(sim.REGISTER_Y)
+}
+func INSTRUCTION_INC_IMPLEMENTATION(sim *Simulator, operands decodeResults, instruction InstructionData) {
+	sim.Memory[operands.returnAddress] = operands.operands[0].(uint8) + 1
+	sim.computeNegativeFlag(sim.Memory[operands.returnAddress])
+	sim.computeZeroFlag(sim.Memory[operands.returnAddress])
+}
+
+func INSTRUCTION_JMP_IMPLEMENTATION(sim *Simulator, operands decodeResults, instruction InstructionData) {
+	//now set PC to address to jump to.
+	sim.REGISTER_PC = operands.operands[0].(uint16)
+	sim.X_JUMPING = true
+}
+
+func INSTRUCTION_JSR_IMPLEMENTATION(sim *Simulator, operands decodeResults, instruction InstructionData) {
+	//push program counter to stack - we push high then low - so when reading it off
+	//its low high.
+
+	//importantly we want to push the address of the low byte of the JSR operand.
+	//so that is PC + 1 because in this emulator we increment the PC AFTER the entire instruction...
+
+	stackRegionStart := sim.Memory[memoryMap["STACK"].start]
+	pchigh := stackRegionStart + sim.REGISTER_STACKPOINTER
+
+	sim.Memory[pchigh] = uint8(((sim.REGISTER_PC + 2) >> 8) & 0xff)
+	//decrement sp
+	sim.REGISTER_STACKPOINTER = sim.REGISTER_STACKPOINTER - 1
+
+	pclow := stackRegionStart + sim.REGISTER_STACKPOINTER
+	sim.Memory[pclow] = uint8((sim.REGISTER_PC + 2) & 0x00ff)
+
+	//decrement sp
+	sim.REGISTER_STACKPOINTER = sim.REGISTER_STACKPOINTER - 1
+
+	//now set PC to SR address to jump to.
+	sim.REGISTER_PC = operands.operands[0].(uint16)
+	sim.X_JUMPING = true
+
+}
+func INSTRUCTION_LDA_IMPLEMENTATION(sim *Simulator, operands decodeResults, instruction InstructionData) {
+	sim.Register_A = operands.operands[0].(uint8)
+	sim.computeNegativeFlag(sim.Register_A)
+	sim.computeZeroFlag(sim.Register_A)
+}
+func INSTRUCTION_LDX_IMPLEMENTATION(sim *Simulator, operands decodeResults, instruction InstructionData) {
+	sim.REGISTER_X = operands.operands[0].(uint8)
+	sim.computeNegativeFlag(sim.REGISTER_X)
+	sim.computeZeroFlag(sim.REGISTER_X)
+}
+
+func INSTRUCTION_LDY_IMPLEMENTATION(sim *Simulator, operands decodeResults, instruction InstructionData) {
+	sim.REGISTER_Y = operands.operands[0].(uint8)
 	sim.computeNegativeFlag(sim.REGISTER_Y)
 	sim.computeZeroFlag(sim.REGISTER_Y)
 }
