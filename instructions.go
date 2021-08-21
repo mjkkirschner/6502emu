@@ -48,6 +48,19 @@ func INSTRUCTION_ADC_IMPLEMENTATION(sim *Simulator, operands decodeResults, inst
 	sim.computeNegativeFlag(sim.Register_A)
 }
 
+/*
+A,Z,C,N = A-M-(1-C)
+
+This instruction subtracts the contents of a memory location to the accumulator together with the not of the carry bit.
+If overflow occurs the carry bit is clear, this enables multiple byte subtraction to be performed.
+*/
+func INSTRUCTION_SBC_IMPLEMENTATION(sim *Simulator, operands decodeResults, instruction InstructionData) {
+	modops := operands
+	//invert the operand before adding to do subtraction.
+	modops.operands[0] = modops.operands[0].(uint8) ^ 0xFF
+	INSTRUCTION_ADC_IMPLEMENTATION(sim, modops, instruction)
+}
+
 func INSTRUCTION_TAX_IMPLEMENTATION(sim *Simulator, operands decodeResults, instruction InstructionData) {
 	//calculate the result.
 	a := sim.Register_A
@@ -121,6 +134,77 @@ func INSTRUCTION_ASL_IMPLEMENTATION(sim *Simulator, operands decodeResults, inst
 	a := operands.operands[0].(uint8)
 	carrycheck := a&128 > 0
 	result = a << 1
+	switch instruction.addressMode {
+	case ACCUMULATOR:
+		sim.Register_A = result
+	//should cover all other cases
+	default:
+		sim.Memory[operands.returnAddress] = result
+	}
+	sim.computeCarryFlag(carrycheck)
+	sim.computeZeroFlag(result)
+	sim.computeNegativeFlag(result)
+
+}
+
+func INSTRUCTION_LSR_IMPLEMENTATION(sim *Simulator, operands decodeResults, instruction InstructionData) {
+	//I think we'll only ever have operand A.
+	//to determine where to store the result, check the returnAddress if it exists.
+	var result uint8 = 0
+	//grab the value we need to shift left.
+	a := operands.operands[0].(uint8)
+	carrycheck := a&1 > 0
+	result = a >> 1
+	switch instruction.addressMode {
+	case ACCUMULATOR:
+		sim.Register_A = result
+	//should cover all other cases
+	default:
+		sim.Memory[operands.returnAddress] = result
+	}
+	sim.computeCarryFlag(carrycheck)
+	sim.computeZeroFlag(result)
+	sim.computeNegativeFlag(result)
+
+}
+
+//Move each of the bits in either A or M one place to the right.
+// Bit 7 is filled with the current value of the carry flag whilst the old bit 0 becomes the new carry flag value.
+
+func INSTRUCTION_ROR_IMPLEMENTATION(sim *Simulator, operands decodeResults, instruction InstructionData) {
+	//I think we'll only ever have operand A.
+	//to determine where to store the result, check the returnAddress if it exists.
+	var result uint8 = 0
+	//grab the value we need to shift left.
+	a := operands.operands[0].(uint8)
+	carrycheck := a&1 > 0
+	result = a >> 1
+	result = result | 128&btou(sim.GetBit(REGISTER_STATUS, BITFLAG_STATUS_CARRY))
+	switch instruction.addressMode {
+	case ACCUMULATOR:
+		sim.Register_A = result
+	//should cover all other cases
+	default:
+		sim.Memory[operands.returnAddress] = result
+	}
+	sim.computeCarryFlag(carrycheck)
+	sim.computeZeroFlag(result)
+	sim.computeNegativeFlag(result)
+
+}
+
+//Move each of the bits in either A or M one place to the left.
+// Bit 0 is filled with the current value of the carry flag whilst the old bit 7 becomes the new carry flag value.
+
+func INSTRUCTION_ROL_IMPLEMENTATION(sim *Simulator, operands decodeResults, instruction InstructionData) {
+	//I think we'll only ever have operand A.
+	//to determine where to store the result, check the returnAddress if it exists.
+	var result uint8 = 0
+	//grab the value we need to shift left.
+	a := operands.operands[0].(uint8)
+	carrycheck := a&128 > 0
+	result = a << 1
+	result = result | 1&btou(sim.GetBit(REGISTER_STATUS, BITFLAG_STATUS_CARRY))
 	switch instruction.addressMode {
 	case ACCUMULATOR:
 		sim.Register_A = result
@@ -375,6 +459,13 @@ func INSTRUCTION_EOR_IMPLEMENTATION(sim *Simulator, operands decodeResults, inst
 	sim.computeZeroFlag(sim.Register_A)
 }
 
+func INSTRUCTION_ORA_IMPLEMENTATION(sim *Simulator, operands decodeResults, instruction InstructionData) {
+	m := operands.operands[0].(uint8)
+	sim.Register_A = sim.Register_A | m
+	sim.computeNegativeFlag(sim.Register_A)
+	sim.computeZeroFlag(sim.Register_A)
+}
+
 func INSTRUCTION_DEC_IMPLEMENTATION(sim *Simulator, operands decodeResults, instruction InstructionData) {
 	x := operands.operands[0].(uint8) - 1
 	sim.Memory[operands.returnAddress] = x
@@ -453,4 +544,14 @@ func INSTRUCTION_LDY_IMPLEMENTATION(sim *Simulator, operands decodeResults, inst
 	sim.REGISTER_Y = operands.operands[0].(uint8)
 	sim.computeNegativeFlag(sim.REGISTER_Y)
 	sim.computeZeroFlag(sim.REGISTER_Y)
+}
+
+func INSTRUCTION_STA_IMPLEMENTATION(sim *Simulator, operands decodeResults, instruction InstructionData) {
+	sim.Memory[operands.returnAddress] = sim.Register_A
+}
+func INSTRUCTION_STX_IMPLEMENTATION(sim *Simulator, operands decodeResults, instruction InstructionData) {
+	sim.Memory[operands.returnAddress] = sim.REGISTER_X
+}
+func INSTRUCTION_STY_IMPLEMENTATION(sim *Simulator, operands decodeResults, instruction InstructionData) {
+	sim.Memory[operands.returnAddress] = sim.REGISTER_Y
 }
