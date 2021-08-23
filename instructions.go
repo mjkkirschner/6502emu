@@ -96,8 +96,6 @@ func INSTRUCTION_TSX_IMPLEMENTATION(sim *Simulator, operands decodeResults, inst
 func INSTRUCTION_TXS_IMPLEMENTATION(sim *Simulator, operands decodeResults, instruction InstructionData) {
 	//calculate the result.
 	sim.REGISTER_STACKPOINTER = sim.REGISTER_X
-	sim.computeZeroFlag(sim.REGISTER_STACKPOINTER)
-	sim.computeNegativeFlag(sim.REGISTER_STACKPOINTER)
 }
 
 func INSTRUCTION_CLC_IMPLEMENTATION(sim *Simulator, operands decodeResults, instruction InstructionData) {
