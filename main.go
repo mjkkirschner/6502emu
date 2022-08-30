@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"reflect"
+	"runtime"
 	"strconv"
 	"unicode"
 )
@@ -43,14 +45,14 @@ func (sim *Simulator) executeInstruction(instr InstructionData) {
 	if opFunc == nil {
 		log.Fatal("no implementation for ", instr.mnemonic, " ", ADDRESS_MODE_NAME_MAP[instr.addressMode])
 	}
-
+	//TODO add debug mode
+	fmt.Println("executing:", runtime.FuncForPC(reflect.ValueOf(opFunc).Pointer()).Name(), instr.mnemonic, " ", ADDRESS_MODE_NAME_MAP[instr.addressMode], operands)
 	//execute
 	opFunc(sim, operands, instr)
-
 }
 
-//we leave out PC register deliberately since its 16 bits.
-//also unlikely we'll ever bit set PC.
+// we leave out PC register deliberately since its 16 bits.
+// also unlikely we'll ever bit set PC.
 func (sim *Simulator) SetBit(reg REGISTER, bit uint) {
 
 	switch reg {
@@ -129,7 +131,7 @@ type decodeResults struct {
 	returnAddress uint16
 }
 
-//get operands based on address type
+// get operands based on address type
 func (sim *Simulator) decodeOperands(instr InstructionData) decodeResults {
 
 	//since these are memory locations negatives usually don't make sense.
