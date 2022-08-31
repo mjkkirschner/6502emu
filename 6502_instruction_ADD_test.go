@@ -235,5 +235,6 @@ func NewSimulatorFromInstructionData() *Simulator {
 	sim.Memory[0xFFFC] = 0
 	sim.Memory[0xFFFC] = 0
 	sim.reset() //set PC to FFFC/FFFD
+	sim.setStatusFlagsDefault()
 	return sim
 }

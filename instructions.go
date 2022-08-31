@@ -342,8 +342,9 @@ func INSTRUCTION_BRK_IMPLEMENTATION(sim *Simulator, operands decodeResults, inst
 func INSTRUCTION_PHA_IMPLEMENTATION(sim *Simulator, operands decodeResults, instruction InstructionData) {
 	//push A to stack
 
-	stackRegionStart := sim.Memory[memoryMap["STACK"].start]
-	stackaddr := stackRegionStart + sim.REGISTER_STACKPOINTER
+	stackRegionStart := memoryMap["STACK"].start
+	//TODO fix all these overflows.
+	stackaddr := uint16(stackRegionStart) + uint16(sim.REGISTER_STACKPOINTER)
 
 	sim.Memory[stackaddr] = sim.Register_A
 	//decrement sp
@@ -352,8 +353,8 @@ func INSTRUCTION_PHA_IMPLEMENTATION(sim *Simulator, operands decodeResults, inst
 func INSTRUCTION_PHP_IMPLEMENTATION(sim *Simulator, operands decodeResults, instruction InstructionData) {
 	//push status to stack.
 
-	stackRegionStart := sim.Memory[memoryMap["STACK"].start]
-	stackaddr := stackRegionStart + sim.REGISTER_STACKPOINTER
+	stackRegionStart := memoryMap["STACK"].start
+	stackaddr := uint16(stackRegionStart) + uint16(sim.REGISTER_STACKPOINTER)
 
 	sim.Memory[stackaddr] = sim.REGISTER_STATUS_P
 	//decrement sp
@@ -363,10 +364,10 @@ func INSTRUCTION_PHP_IMPLEMENTATION(sim *Simulator, operands decodeResults, inst
 func INSTRUCTION_PLA_IMPLEMENTATION(sim *Simulator, operands decodeResults, instruction InstructionData) {
 	//pull stack to A. //set status flags. n,z
 
-	stackRegionStart := sim.Memory[memoryMap["STACK"].start]
+	stackRegionStart := memoryMap["STACK"].start
 	//increment sp
 	sim.REGISTER_STACKPOINTER = sim.REGISTER_STACKPOINTER + 1
-	stackaddrToPull := stackRegionStart + sim.REGISTER_STACKPOINTER
+	stackaddrToPull := uint16(stackRegionStart) + uint16(sim.REGISTER_STACKPOINTER)
 
 	sim.Register_A = sim.Memory[stackaddrToPull]
 	sim.computeNegativeFlag(sim.Register_A)
@@ -375,33 +376,34 @@ func INSTRUCTION_PLA_IMPLEMENTATION(sim *Simulator, operands decodeResults, inst
 
 func INSTRUCTION_PLP_IMPLEMENTATION(sim *Simulator, operands decodeResults, instruction InstructionData) {
 	//pull stack to status.
-	stackRegionStart := sim.Memory[memoryMap["STACK"].start]
+	stackRegionStart := memoryMap["STACK"].start
 	//increment sp
 	sim.REGISTER_STACKPOINTER = sim.REGISTER_STACKPOINTER + 1
-	stackaddrToPull := stackRegionStart + sim.REGISTER_STACKPOINTER
+	stackaddrToPull := uint16(stackRegionStart) + uint16(sim.REGISTER_STACKPOINTER)
 
 	sim.REGISTER_STATUS_P = sim.Memory[stackaddrToPull]
-
+	//b and r flags should not be affected by PLP.
+	sim.setStatusFlagsDefault()
 }
 
 func INSTRUCTION_RTI_IMPLEMENTATION(sim *Simulator, operands decodeResults, instruction InstructionData) {
 	//pull stack to status.
 	//then pull PC from stack.
-	stackRegionStart := sim.Memory[memoryMap["STACK"].start]
+	stackRegionStart := memoryMap["STACK"].start
 	//increment sp
 	sim.REGISTER_STACKPOINTER = sim.REGISTER_STACKPOINTER + 1
-	stackaddrToPull := stackRegionStart + sim.REGISTER_STACKPOINTER
+	stackaddrToPull := stackRegionStart + uint16(sim.REGISTER_STACKPOINTER)
 
 	sim.REGISTER_STATUS_P = sim.Memory[stackaddrToPull]
 	//increment sp
 	sim.REGISTER_STACKPOINTER = sim.REGISTER_STACKPOINTER + 1
 	//now get program counter
-	stackaddrToPull = stackRegionStart + sim.REGISTER_STACKPOINTER
+	stackaddrToPull = stackRegionStart + uint16(sim.REGISTER_STACKPOINTER)
 	addrlow := sim.Memory[stackaddrToPull]
 	//increment sp
 	sim.REGISTER_STACKPOINTER = sim.REGISTER_STACKPOINTER + 1
 	//now get program counter
-	stackaddrToPull = stackRegionStart + sim.REGISTER_STACKPOINTER
+	stackaddrToPull = stackRegionStart + uint16(sim.REGISTER_STACKPOINTER)
 	addrhigh := sim.Memory[stackaddrToPull]
 	longaddr := uint16(addrhigh)<<8 | (uint16(addrlow) & 0xff)
 	sim.REGISTER_PC = longaddr
@@ -410,16 +412,16 @@ func INSTRUCTION_RTI_IMPLEMENTATION(sim *Simulator, operands decodeResults, inst
 
 func INSTRUCTION_RTS_IMPLEMENTATION(sim *Simulator, operands decodeResults, instruction InstructionData) {
 	// pull PC-1 from stack.
-	stackRegionStart := sim.Memory[memoryMap["STACK"].start]
+	stackRegionStart := memoryMap["STACK"].start
 	//increment sp
 	sim.REGISTER_STACKPOINTER = sim.REGISTER_STACKPOINTER + 1
 	//now get program counter
-	stackaddrToPull := stackRegionStart + sim.REGISTER_STACKPOINTER
+	stackaddrToPull := stackRegionStart + uint16(sim.REGISTER_STACKPOINTER)
 	addrlow := sim.Memory[stackaddrToPull]
 	//increment sp
 	sim.REGISTER_STACKPOINTER = sim.REGISTER_STACKPOINTER + 1
 	//now get program counter
-	stackaddrToPull = stackRegionStart + sim.REGISTER_STACKPOINTER
+	stackaddrToPull = stackRegionStart + uint16(sim.REGISTER_STACKPOINTER)
 	addrhigh := sim.Memory[stackaddrToPull]
 	longaddr := uint16(addrhigh)<<8 | (uint16(addrlow) & 0xff)
 	sim.REGISTER_PC = longaddr + 1
@@ -509,21 +511,21 @@ func INSTRUCTION_JSR_IMPLEMENTATION(sim *Simulator, operands decodeResults, inst
 	//importantly we want to push the address of the low byte of the JSR operand.
 	//so that is PC + 1 because in this emulator we increment the PC AFTER the entire instruction...
 
-	stackRegionStart := sim.Memory[memoryMap["STACK"].start]
-	pchigh := stackRegionStart + sim.REGISTER_STACKPOINTER
+	stackRegionStart := memoryMap["STACK"].start
+	pchigh := stackRegionStart + uint16(sim.REGISTER_STACKPOINTER)
 
 	sim.Memory[pchigh] = uint8(((sim.REGISTER_PC + 2) >> 8) & 0xff)
 	//decrement sp
 	sim.REGISTER_STACKPOINTER = sim.REGISTER_STACKPOINTER - 1
 
-	pclow := stackRegionStart + sim.REGISTER_STACKPOINTER
+	pclow := stackRegionStart + uint16(sim.REGISTER_STACKPOINTER)
 	sim.Memory[pclow] = uint8((sim.REGISTER_PC + 2) & 0x00ff)
 
 	//decrement sp
 	sim.REGISTER_STACKPOINTER = sim.REGISTER_STACKPOINTER - 1
 
 	//now set PC to SR address to jump to.
-	sim.REGISTER_PC = operands.operands[0].(uint16)
+	sim.REGISTER_PC = operands.returnAddress
 	sim.X_JUMPING = true
 
 }

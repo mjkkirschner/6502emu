@@ -36,6 +36,13 @@ func (sim *Simulator) reset() {
 	sim.REGISTER_PC = longaddr
 }
 
+func (sim *Simulator) setStatusFlagsDefault() {
+	//reserved is always 1
+	sim.SetBit(REGISTER_STATUS, BITFLAG_STATUS_R_FLAG)
+	//break bit
+	sim.SetBit(REGISTER_STATUS, BITFLAG_STATUS_B_FLAG)
+}
+
 func (sim *Simulator) executeInstruction(instr InstructionData) {
 
 	//decode operands based on address mode type.
@@ -46,7 +53,7 @@ func (sim *Simulator) executeInstruction(instr InstructionData) {
 		log.Fatal("no implementation for ", instr.mnemonic, " ", ADDRESS_MODE_NAME_MAP[instr.addressMode])
 	}
 	//TODO add debug mode
-	fmt.Println("PC:", sim.REGISTER_PC, "executing:", runtime.FuncForPC(reflect.ValueOf(opFunc).Pointer()).Name(), instr.mnemonic, " ", ADDRESS_MODE_NAME_MAP[instr.addressMode], operands)
+	fmt.Println("PC:", sim.REGISTER_PC, "0x:", fmt.Sprintf("%x", sim.REGISTER_PC), "executing:", runtime.FuncForPC(reflect.ValueOf(opFunc).Pointer()).Name(), instr.mnemonic, " ", ADDRESS_MODE_NAME_MAP[instr.addressMode], operands)
 	//execute
 	opFunc(sim, operands, instr)
 }
@@ -229,8 +236,8 @@ func (sim *Simulator) decodeOperands(instr InstructionData) decodeResults {
 		//only JMP will use INDIRECT this address mode.
 	case INDIRECT:
 		//a will be LSB, b will be MSB since 6502 is little endian
-		a = uint8(sim.Memory[sim.Memory[sim.REGISTER_PC+1]])
-		b = uint8(sim.Memory[sim.Memory[sim.REGISTER_PC+2]])
+		a = uint8(sim.Memory[sim.REGISTER_PC+1])
+		b = uint8(sim.Memory[sim.REGISTER_PC+2])
 		//shift msb up 8 then or with a (and with 255 clears any upper  bits...)
 		longaddr = uint16(b)<<8 | (uint16(a) & 0xff)
 
@@ -240,6 +247,7 @@ func (sim *Simulator) decodeOperands(instr InstructionData) decodeResults {
 		//now combine bytes highLow and return that as the final address for the jump
 		longaddr = uint16(highByte)<<8 | (uint16(lowbyte) & 0xff)
 		outputOperands = append(outputOperands, longaddr)
+		returnAddress = longaddr
 
 	case RELATIVE:
 		//in the case of relative its a signed byte max of 127, min -127 from pc.

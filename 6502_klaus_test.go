@@ -9,7 +9,7 @@ func TestRunKlausTestBinary(t *testing.T) {
 	//set pc to start offset.
 	sim.REGISTER_PC = 0x400
 	//run 'forever'...
-	for i := 0; i < 10000000000; i++ {
+	for i := 0; i < 41000; i++ {
 		sim.Run(1)
 	}
 }

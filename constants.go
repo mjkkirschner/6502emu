@@ -15,14 +15,15 @@ const (
 	BITFLAG_STATUS_INTERRUPT_DISABLE = 2
 	BITFLAG_STATUS_DECIMAL           = 3
 	BITFLAG_STATUS_B_FLAG            = 4
-	BITFLAG_STATUS_OVERFLOW          = 5
-	BITFLAG_STATUS_NEGATIVE          = 6
+	BITFLAG_STATUS_R_FLAG            = 5
+	BITFLAG_STATUS_OVERFLOW          = 6
+	BITFLAG_STATUS_NEGATIVE          = 7
 )
 
 type OPCODE int
 
-//todo consider using memonic or different name for each opcode with addressing...
-//or to try to centralize decode logic of operands. - see trial in decodeOperands() function
+// todo consider using memonic or different name for each opcode with addressing...
+// or to try to centralize decode logic of operands. - see trial in decodeOperands() function
 const (
 	ADDWITHCARRY_OPCODE_IMM  = 105
 	ADDWITHCARRY_OPCODE_ZP   = 101
