@@ -46,7 +46,7 @@ func (sim *Simulator) executeInstruction(instr InstructionData) {
 		log.Fatal("no implementation for ", instr.mnemonic, " ", ADDRESS_MODE_NAME_MAP[instr.addressMode])
 	}
 	//TODO add debug mode
-	fmt.Println("executing:", runtime.FuncForPC(reflect.ValueOf(opFunc).Pointer()).Name(), instr.mnemonic, " ", ADDRESS_MODE_NAME_MAP[instr.addressMode], operands)
+	fmt.Println("PC:", sim.REGISTER_PC, "executing:", runtime.FuncForPC(reflect.ValueOf(opFunc).Pointer()).Name(), instr.mnemonic, " ", ADDRESS_MODE_NAME_MAP[instr.addressMode], operands)
 	//execute
 	opFunc(sim, operands, instr)
 }
@@ -245,7 +245,7 @@ func (sim *Simulator) decodeOperands(instr InstructionData) decodeResults {
 		//in the case of relative its a signed byte max of 127, min -127 from pc.
 		//convert to signed.
 		offset := int8(sim.Memory[sim.REGISTER_PC+1])
-		jumpAddr := uint16(offset) + uint16(sim.REGISTER_PC)
+		jumpAddr := uint16(offset) + uint16(sim.REGISTER_PC+2)
 		outputOperands = append(outputOperands, jumpAddr)
 
 	case ACCUMULATOR:
