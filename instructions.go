@@ -498,7 +498,7 @@ func INSTRUCTION_INC_IMPLEMENTATION(sim *Simulator, operands decodeResults, inst
 
 func INSTRUCTION_JMP_IMPLEMENTATION(sim *Simulator, operands decodeResults, instruction InstructionData) {
 	//now set PC to address to jump to.
-	sim.REGISTER_PC = operands.operands[0].(uint16)
+	sim.REGISTER_PC = operands.returnAddress
 	sim.X_JUMPING = true
 }
 
