@@ -14,7 +14,7 @@ func TestBCC(t *testing.T) {
 
 	sim.Run(1)
 
-	if sim.REGISTER_PC != 5 {
+	if sim.REGISTER_PC != 7 {
 		t.FailNow()
 	}
 }
@@ -31,7 +31,7 @@ func TestBCS(t *testing.T) {
 
 	sim.Run(2)
 	//1 + 50
-	if sim.REGISTER_PC != 51 {
+	if sim.REGISTER_PC != 53 {
 		t.FailNow()
 	}
 }
@@ -48,7 +48,7 @@ func TestBEQ(t *testing.T) {
 	}
 
 	sim.Run(2)
-	if sim.REGISTER_PC != 52 {
+	if sim.REGISTER_PC != 54 {
 		t.FailNow()
 	}
 }
@@ -64,7 +64,7 @@ func TestBNE(t *testing.T) {
 	}
 
 	sim.Run(2)
-	if sim.REGISTER_PC != 52 {
+	if sim.REGISTER_PC != 54 {
 		t.FailNow()
 	}
 }
@@ -81,7 +81,7 @@ func TestBMI(t *testing.T) {
 	}
 
 	sim.Run(2)
-	if sim.REGISTER_PC != 52 {
+	if sim.REGISTER_PC != 54 {
 		t.FailNow()
 	}
 }
@@ -97,7 +97,7 @@ func TestBPL(t *testing.T) {
 	}
 
 	sim.Run(2)
-	if sim.REGISTER_PC != 52 {
+	if sim.REGISTER_PC != 54 {
 		t.FailNow()
 	}
 }
@@ -113,13 +113,13 @@ func TestBVC(t *testing.T) {
 	}
 
 	sim.Run(2)
-	if sim.REGISTER_PC != 52 {
+	if sim.REGISTER_PC != 54 {
 		t.FailNow()
 	}
 }
 func TestBVS(t *testing.T) {
 	sim := NewSimulatorFromInstructionData()
-	sim.Register_A = 131 //-125
+	sim.REGISTER_A = 131 //-125
 	sim.Memory[0] = ADDWITHCARRY_OPCODE_IMM
 	sim.Memory[1] = 131 //-125
 	//-125 + -125 = -250 (signed overflow, max of -127)
@@ -131,7 +131,7 @@ func TestBVS(t *testing.T) {
 	}
 
 	sim.Run(2)
-	if sim.REGISTER_PC != 52 {
+	if sim.REGISTER_PC != 54 {
 		t.FailNow()
 	}
 }

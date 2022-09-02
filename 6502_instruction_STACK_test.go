@@ -14,7 +14,7 @@ func TestPHA_PLA(t *testing.T) {
 	sim.Run(6)
 
 	//acc should have 222 in it
-	if sim.Register_A != 222 {
+	if sim.REGISTER_A != 222 {
 		t.Fail()
 	}
 }

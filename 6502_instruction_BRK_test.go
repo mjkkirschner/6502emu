@@ -13,7 +13,7 @@ func TestBRK(t *testing.T) {
 
 	sim.Run(2)
 
-	if sim.Register_A != 111 {
+	if sim.REGISTER_A != 111 {
 		t.FailNow()
 	}
 }

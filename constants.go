@@ -20,6 +20,15 @@ const (
 	BITFLAG_STATUS_NEGATIVE          = 7
 )
 
+var REGISTER_NAME_MAP = map[REGISTER]string{
+	REGISTER_A:            "REGISTER_A",
+	REGISTER_X:            "REGISTER_X",
+	REGISTER_Y:            "REGISTER_Y",
+	REGISTER_PC:           "REGISTER_PC",
+	REGISTER_STACKPOINTER: "REGISTER_STACKPOINTER",
+	REGISTER_STATUS:       "REGISTER_STATUS",
+}
+
 type OPCODE int
 
 // todo consider using memonic or different name for each opcode with addressing...

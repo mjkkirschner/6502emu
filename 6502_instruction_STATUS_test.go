@@ -59,7 +59,7 @@ func TestCLI(t *testing.T) {
 func TestCLV(t *testing.T) {
 	sim := NewSimulatorFromInstructionData()
 
-	sim.Register_A = 131 //-125
+	sim.REGISTER_A = 131 //-125
 	sim.Memory[0] = ADDWITHCARRY_OPCODE_IMM
 	sim.Memory[1] = 131 //-125
 	//-125 + -125 = -250 (signed overflow, max of -127)

@@ -95,17 +95,17 @@ func TestASLZPX(t *testing.T) {
 
 func TestASLACC(t *testing.T) {
 	sim := NewSimulatorFromInstructionData()
-	sim.Register_A = 8
+	sim.REGISTER_A = 8
 	sim.Memory[0] = ASL_OPCODE_ACC
 
-	if sim.Register_A != 8 {
+	if sim.REGISTER_A != 8 {
 		t.Log(("not correct before run"))
 		t.FailNow()
 	}
 
 	sim.Run(1)
 
-	if sim.Register_A != 16 {
+	if sim.REGISTER_A != 16 {
 		t.Log(("not correct after run"))
 		t.FailNow()
 	}
@@ -113,7 +113,7 @@ func TestASLACC(t *testing.T) {
 
 func TestASLFlags(t *testing.T) {
 	sim := NewSimulatorFromInstructionData()
-	sim.Register_A = 255
+	sim.REGISTER_A = 255
 	sim.Memory[0] = ASL_OPCODE_ACC
 	sim.Memory[1] = ASL_OPCODE_ACC
 	sim.Memory[2] = ASL_OPCODE_ACC
@@ -124,7 +124,7 @@ func TestASLFlags(t *testing.T) {
 	sim.Memory[7] = ASL_OPCODE_ACC
 
 	sim.Run(8)
-	if sim.Register_A != 0 {
+	if sim.REGISTER_A != 0 {
 		t.Log("a not 0")
 		t.FailNow()
 	}

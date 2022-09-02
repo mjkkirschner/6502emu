@@ -31,7 +31,7 @@ func TestTXA(t *testing.T) {
 
 	sim.Run(2)
 
-	if sim.Register_A != 50 {
+	if sim.REGISTER_A != 50 {
 		t.FailNow()
 	}
 	if sim.REGISTER_PC != 4 {
@@ -67,7 +67,7 @@ func TestTYA(t *testing.T) {
 
 	sim.Run(2)
 
-	if sim.Register_A != 50 {
+	if sim.REGISTER_A != 50 {
 		t.FailNow()
 	}
 	if sim.REGISTER_PC != 4 {
@@ -87,7 +87,7 @@ func TestTSX(t *testing.T) {
 
 	sim.Run(6)
 
-	if sim.Register_A != 55 {
+	if sim.REGISTER_A != 55 {
 		t.FailNow()
 	}
 	//0 - 4 = 252

@@ -12,7 +12,7 @@ import (
 )
 
 type Simulator struct {
-	Register_A            uint8
+	REGISTER_A            uint8
 	REGISTER_X            uint8
 	REGISTER_Y            uint8
 	REGISTER_PC           uint16
@@ -65,7 +65,7 @@ func (sim *Simulator) SetBit(reg REGISTER, bit uint) {
 
 	switch reg {
 	case REGISTER_A:
-		sim.Register_A |= (1 << bit)
+		sim.REGISTER_A |= (1 << bit)
 
 	case REGISTER_STACKPOINTER:
 		sim.REGISTER_STACKPOINTER |= (1 << bit)
@@ -84,7 +84,7 @@ func (sim *Simulator) ClearBit(reg REGISTER, bit uint) {
 
 	switch reg {
 	case REGISTER_A:
-		sim.Register_A &= ^(1 << bit)
+		sim.REGISTER_A &= ^(1 << bit)
 
 	case REGISTER_STACKPOINTER:
 		sim.REGISTER_STACKPOINTER &= ^(1 << bit)
@@ -104,7 +104,7 @@ func (sim *Simulator) GetBit(reg REGISTER, bit uint) bool {
 
 	switch reg {
 	case REGISTER_A:
-		return sim.Register_A&(1<<bit) > 0
+		return sim.REGISTER_A&(1<<bit) > 0
 
 	case REGISTER_STACKPOINTER:
 		return sim.REGISTER_STACKPOINTER&(1<<bit) > 0
@@ -123,11 +123,11 @@ func (sim *Simulator) GetBit(reg REGISTER, bit uint) bool {
 }
 
 func (sim *Simulator) Set8BitRegister(reg REGISTER, value uint8) {
-	log.Println("setting", reg, "to value", value)
+	fmt.Println("setting", REGISTER_NAME_MAP[reg], "to value", value, "0x", fmt.Sprintf("%x", value))
 
 	switch reg {
 	case REGISTER_A:
-		sim.Register_A = value
+		sim.REGISTER_A = value
 		return
 	case REGISTER_STACKPOINTER:
 		sim.REGISTER_STACKPOINTER = value
@@ -149,7 +149,7 @@ func (sim *Simulator) Set8BitRegister(reg REGISTER, value uint8) {
 }
 
 func (sim *Simulator) Set16BitRegister(reg REGISTER, value uint16) {
-	log.Println("setting", reg, "to value", value)
+	fmt.Println("setting", REGISTER_NAME_MAP[reg], "to value", value, "0x", fmt.Sprintf("%x", value))
 
 	switch reg {
 	case REGISTER_PC:
@@ -295,7 +295,7 @@ func (sim *Simulator) decodeOperands(instr InstructionData) decodeResults {
 		outputOperands = append(outputOperands, jumpAddr)
 
 	case ACCUMULATOR:
-		outputOperands = append(outputOperands, sim.Register_A)
+		outputOperands = append(outputOperands, sim.REGISTER_A)
 	case IMPLIED:
 
 		//TODO some instructions like branch intructions will need to reinterpert the results
