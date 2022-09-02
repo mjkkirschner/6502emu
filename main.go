@@ -21,6 +21,7 @@ type Simulator struct {
 	Instructions          map[OPCODE]InstructionData
 	Memory                []uint8
 	X_JUMPING             bool
+	totalint              uint64
 }
 
 func NewSimulator(instructions map[OPCODE]InstructionData) *Simulator {
@@ -53,7 +54,7 @@ func (sim *Simulator) executeInstruction(instr InstructionData) {
 		log.Fatal("no implementation for ", instr.mnemonic, " ", ADDRESS_MODE_NAME_MAP[instr.addressMode])
 	}
 	//TODO add debug mode
-	fmt.Println("PC:", sim.REGISTER_PC, "0x:", fmt.Sprintf("%x", sim.REGISTER_PC), "executing:", runtime.FuncForPC(reflect.ValueOf(opFunc).Pointer()).Name(), instr.mnemonic, " ", ADDRESS_MODE_NAME_MAP[instr.addressMode], operands)
+	fmt.Println("PC:", sim.REGISTER_PC, "0x:", fmt.Sprintf("%x", sim.REGISTER_PC), "executing:", runtime.FuncForPC(reflect.ValueOf(opFunc).Pointer()).Name(), instr.mnemonic, " ", ADDRESS_MODE_NAME_MAP[instr.addressMode], operands, "total instructions:", sim.totalint)
 	//execute
 	opFunc(sim, operands, instr)
 }
@@ -119,6 +120,43 @@ func (sim *Simulator) GetBit(reg REGISTER, bit uint) bool {
 	}
 	log.Fatal("unhandled register in get bit")
 	return false
+}
+
+func (sim *Simulator) Set8BitRegister(reg REGISTER, value uint8) {
+	log.Println("setting", reg, "to value", value)
+
+	switch reg {
+	case REGISTER_A:
+		sim.Register_A = value
+		return
+	case REGISTER_STACKPOINTER:
+		sim.REGISTER_STACKPOINTER = value
+		return
+
+	case REGISTER_X:
+		sim.REGISTER_X = value
+		return
+
+	case REGISTER_Y:
+		sim.REGISTER_Y = value
+		return
+
+	case REGISTER_STATUS:
+		sim.REGISTER_STATUS_P = value
+		return
+	}
+	log.Fatal("unhandled register in set8bitReg")
+}
+
+func (sim *Simulator) Set16BitRegister(reg REGISTER, value uint16) {
+	log.Println("setting", reg, "to value", value)
+
+	switch reg {
+	case REGISTER_PC:
+		sim.REGISTER_PC = value
+		return
+	}
+	log.Fatal("unhandled register in set16bitReg")
 }
 
 func GetBit(value uint, bit uint) bool {
@@ -280,6 +318,7 @@ func (sim *Simulator) SingleStep() {
 	if !sim.X_JUMPING {
 		sim.incrementPC(instruction.bytes)
 	}
+	sim.totalint = sim.totalint + 1
 }
 
 func (sim *Simulator) Run(instructions uint) {

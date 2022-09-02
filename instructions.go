@@ -308,21 +308,21 @@ func INSTRUCTION_BRK_IMPLEMENTATION(sim *Simulator, operands decodeResults, inst
 	//push program counter to stack - we push high then low - so when reading it off
 	//its low high.
 
-	stackRegionStart := sim.Memory[memoryMap["STACK"].start]
-	pchigh := stackRegionStart + sim.REGISTER_STACKPOINTER
+	stackRegionStart := memoryMap["STACK"].start
+	pchigh := stackRegionStart + uint16(sim.REGISTER_STACKPOINTER)
 
-	sim.Memory[pchigh] = uint8((sim.REGISTER_PC >> 8) & 0xff)
+	sim.Memory[pchigh] = uint8(((sim.REGISTER_PC + 2) >> 8) & 0xff)
 	//decrement sp
 	sim.REGISTER_STACKPOINTER = sim.REGISTER_STACKPOINTER - 1
 
-	pclow := stackRegionStart + sim.REGISTER_STACKPOINTER
-	sim.Memory[pclow] = uint8(sim.REGISTER_PC & 0x00ff)
+	pclow := stackRegionStart + uint16(sim.REGISTER_STACKPOINTER)
+	sim.Memory[pclow] = uint8((sim.REGISTER_PC + 2) & 0x00ff)
 
 	//decrement sp
 	sim.REGISTER_STACKPOINTER = sim.REGISTER_STACKPOINTER - 1
 
 	//push status reg to stack
-	addrForStatus := stackRegionStart + sim.REGISTER_STACKPOINTER
+	addrForStatus := stackRegionStart + uint16(sim.REGISTER_STACKPOINTER)
 	sim.Memory[addrForStatus] = sim.REGISTER_STATUS_P
 
 	//decrement sp
@@ -335,6 +335,8 @@ func INSTRUCTION_BRK_IMPLEMENTATION(sim *Simulator, operands decodeResults, inst
 	sim.REGISTER_PC = longaddr
 	//set break flag high
 	sim.SetBit(REGISTER_STATUS, BITFLAG_STATUS_B_FLAG)
+	//set interupt disable flag high
+	sim.SetBit(REGISTER_STATUS, BITFLAG_STATUS_INTERRUPT_DISABLE)
 	//TODO unsure if this should be true. BRK should jump to the interupt request handler -right?
 	sim.X_JUMPING = true
 }
