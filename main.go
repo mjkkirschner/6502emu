@@ -148,6 +148,11 @@ func (sim *Simulator) Set8BitRegister(reg REGISTER, value uint8) {
 	log.Fatal("unhandled register in set8bitReg")
 }
 
+func (sim *Simulator) SetMemory(address uint16, value uint8) {
+	fmt.Println("setting address", address, "to value", value, "0x", fmt.Sprintf("%x", value))
+	sim.Memory[address] = value
+}
+
 func (sim *Simulator) Set16BitRegister(reg REGISTER, value uint16) {
 	fmt.Println("setting", REGISTER_NAME_MAP[reg], "to value", value, "0x", fmt.Sprintf("%x", value))
 
@@ -205,7 +210,12 @@ func (sim *Simulator) decodeOperands(instr InstructionData) decodeResults {
 	case ZEROPAGE_INDEXEDX:
 		x0 := sim.Memory[sim.REGISTER_PC+1] + sim.REGISTER_X
 		a = uint8(sim.Memory[x0])
-		outputOperands = append(outputOperands, a+b)
+		outputOperands = append(outputOperands, a)
+		returnAddress = uint16(x0)
+	case ZEROPAGE_INDEXEDY:
+		x0 := sim.Memory[sim.REGISTER_PC+1] + sim.REGISTER_Y
+		a = uint8(sim.Memory[x0])
+		outputOperands = append(outputOperands, a)
 		returnAddress = uint16(x0)
 
 	//address at absolute 16bit address
@@ -242,6 +252,7 @@ func (sim *Simulator) decodeOperands(instr InstructionData) decodeResults {
 		longaddr = longaddr + uint16(b)
 		output := sim.Memory[longaddr]
 		outputOperands = append(outputOperands, output)
+		returnAddress = longaddr
 
 	case INDEXED_INDIRECT_X:
 		//zp address
@@ -257,19 +268,22 @@ func (sim *Simulator) decodeOperands(instr InstructionData) decodeResults {
 		//now indirect
 		output := sim.Memory[longaddr]
 		outputOperands = append(outputOperands, output)
+		returnAddress = longaddr
 
 	case INDIRECT_INDEXED_Y:
 		//zp address indirect
 		a = uint8(sim.Memory[sim.REGISTER_PC+1])
 
-		//get address at a+x
+		//get address at a+y
 		lowbyte := sim.Memory[a]
-		highByte := sim.Memory[a+1]
+		highbyte := sim.Memory[a+1]
+
 		//now combine bytes highLow and return that as the final address for the jump
-		longaddr = uint16(highByte)<<8 | (uint16(lowbyte) & 0xff) + uint16(sim.REGISTER_Y)
+		longaddr = (uint16(highbyte)<<8 | (uint16(lowbyte) & 0xff)) + uint16(sim.REGISTER_Y)
 		//now indirect
 		output := sim.Memory[longaddr]
 		outputOperands = append(outputOperands, output)
+		returnAddress = longaddr
 
 		//only JMP will use INDIRECT this address mode.
 	case INDIRECT:
@@ -293,13 +307,15 @@ func (sim *Simulator) decodeOperands(instr InstructionData) decodeResults {
 		offset := int8(sim.Memory[sim.REGISTER_PC+1])
 		jumpAddr := uint16(offset) + uint16(sim.REGISTER_PC+2)
 		outputOperands = append(outputOperands, jumpAddr)
+		returnAddress = longaddr
 
 	case ACCUMULATOR:
 		outputOperands = append(outputOperands, sim.REGISTER_A)
 	case IMPLIED:
-
 		//TODO some instructions like branch intructions will need to reinterpert the results
 		//as signed offset numbers.
+	default:
+		log.Panic("unknown addressing mode")
 	}
 	return decodeResults{outputOperands, returnAddress}
 }
@@ -321,9 +337,14 @@ func (sim *Simulator) SingleStep() {
 	sim.totalint = sim.totalint + 1
 }
 
+// TODO better api for trap detection options.
 func (sim *Simulator) Run(instructions uint) {
 	for i := 0; i < int(instructions); i++ {
+		oldpc := sim.REGISTER_PC
 		sim.SingleStep()
+		if sim.REGISTER_PC == oldpc {
+			log.Panic("TRAP??")
+		}
 	}
 }
 
