@@ -291,6 +291,8 @@ func INSTRUCTION_BIT_IMPLEMENTATION(sim *Simulator, operands decodeResults, inst
 	and := sim.REGISTER_A & m
 	if and == 0 {
 		sim.SetBit(REGISTER_STATUS, BITFLAG_STATUS_ZERO)
+	} else {
+		sim.ClearBit(REGISTER_STATUS, BITFLAG_STATUS_ZERO)
 	}
 	v := GetBit(uint(m), 6)
 	n := GetBit(uint(m), 7)
@@ -435,7 +437,7 @@ func INSTRUCTION_RTS_IMPLEMENTATION(sim *Simulator, operands decodeResults, inst
 func INSTRUCTION_CMP_IMPLEMENTATION(sim *Simulator, operands decodeResults, instruction InstructionData) {
 	m := operands.operands[0].(uint8)
 	b := sim.REGISTER_A - m
-	fmt.Println("comparing", m, "to", b)
+	fmt.Println("comparing", m, "to", sim.REGISTER_A)
 	sim.computeCarryFlag(sim.REGISTER_A >= m)
 	sim.computeNegativeFlag(b)
 	sim.computeZeroFlag(b)
