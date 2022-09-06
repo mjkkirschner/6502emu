@@ -179,13 +179,13 @@ func INSTRUCTION_ROR_IMPLEMENTATION(sim *Simulator, operands decodeResults, inst
 	a := operands.operands[0].(uint8)
 	carrycheck := a&1 > 0
 	result = a >> 1
-	result = result | 128&btou(sim.GetBit(REGISTER_STATUS, BITFLAG_STATUS_CARRY))
+	result = result | 128*btou(sim.GetBit(REGISTER_STATUS, BITFLAG_STATUS_CARRY))
 	switch instruction.addressMode {
 	case ACCUMULATOR:
-		sim.REGISTER_A = result
+		sim.Set8BitRegister(REGISTER_A, result)
 	//should cover all other cases
 	default:
-		sim.Memory[operands.returnAddress] = result
+		sim.SetMemory(operands.returnAddress, result)
 	}
 	sim.computeCarryFlag(carrycheck)
 	sim.computeZeroFlag(result)
