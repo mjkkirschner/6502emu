@@ -22,6 +22,7 @@ type Simulator struct {
 	Memory                []uint8
 	X_JUMPING             bool
 	totalint              uint64
+	Verbose               bool
 }
 
 func NewSimulator(instructions map[OPCODE]InstructionData) *Simulator {
@@ -53,8 +54,10 @@ func (sim *Simulator) executeInstruction(instr InstructionData) {
 	if opFunc == nil {
 		log.Fatal("no implementation for ", instr.mnemonic, " ", ADDRESS_MODE_NAME_MAP[instr.addressMode])
 	}
-	//TODO add debug mode
-	fmt.Println("PC:", sim.REGISTER_PC, "0x:", fmt.Sprintf("%x", sim.REGISTER_PC), "executing:", runtime.FuncForPC(reflect.ValueOf(opFunc).Pointer()).Name(), instr.mnemonic, " ", ADDRESS_MODE_NAME_MAP[instr.addressMode], operands, "total instructions:", sim.totalint)
+	if sim.Verbose {
+
+		fmt.Println("PC:", sim.REGISTER_PC, "0x:", fmt.Sprintf("%x", sim.REGISTER_PC), "executing:", runtime.FuncForPC(reflect.ValueOf(opFunc).Pointer()).Name(), instr.mnemonic, " ", ADDRESS_MODE_NAME_MAP[instr.addressMode], operands, "total instructions:", sim.totalint)
+	}
 	//execute
 	opFunc(sim, operands, instr)
 }
@@ -123,7 +126,10 @@ func (sim *Simulator) GetBit(reg REGISTER, bit uint) bool {
 }
 
 func (sim *Simulator) Set8BitRegister(reg REGISTER, value uint8) {
-	fmt.Println("setting", REGISTER_NAME_MAP[reg], "to value", value, "0x", fmt.Sprintf("%x", value))
+	if sim.Verbose {
+
+		fmt.Println("setting", REGISTER_NAME_MAP[reg], "to value", value, "0x", fmt.Sprintf("%x", value))
+	}
 
 	switch reg {
 	case REGISTER_A:
@@ -149,12 +155,18 @@ func (sim *Simulator) Set8BitRegister(reg REGISTER, value uint8) {
 }
 
 func (sim *Simulator) SetMemory(address uint16, value uint8) {
-	fmt.Println("setting address", address, "to value", value, "0x", fmt.Sprintf("%x", value))
+	if sim.Verbose {
+
+		fmt.Println("setting address", address, "to value", value, "0x", fmt.Sprintf("%x", value))
+	}
 	sim.Memory[address] = value
 }
 
 func (sim *Simulator) Set16BitRegister(reg REGISTER, value uint16) {
-	fmt.Println("setting", REGISTER_NAME_MAP[reg], "to value", value, "0x", fmt.Sprintf("%x", value))
+	if sim.Verbose {
+
+		fmt.Println("setting", REGISTER_NAME_MAP[reg], "to value", value, "0x", fmt.Sprintf("%x", value))
+	}
 
 	switch reg {
 	case REGISTER_PC:
@@ -342,7 +354,13 @@ func (sim *Simulator) Run(instructions uint) {
 	for i := 0; i < int(instructions); i++ {
 		oldpc := sim.REGISTER_PC
 		sim.SingleStep()
+		if sim.REGISTER_PC == 0x336d {
+			fmt.Println("all tests passed except BCD mode")
+		}
+
 		if sim.REGISTER_PC == oldpc {
+			fmt.Println(sim.totalint)
+			fmt.Println(sim.REGISTER_PC)
 			log.Panic("TRAP??")
 		}
 	}

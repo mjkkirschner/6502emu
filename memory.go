@@ -22,7 +22,7 @@ func check(e error) {
 func (sim *Simulator) loadMemoryFromBinary(filePath string) {
 	data, err := os.ReadFile(filePath)
 	check(err)
-	fmt.Print(len(data))
+	fmt.Println(len(data))
 	//TODO is this safe? Should we instead iterate?
 	sim.Memory = data
 }
