@@ -183,9 +183,11 @@ func INSTRUCTION_ROR_IMPLEMENTATION(sim *Simulator, operands decodeResults, inst
 	switch instruction.addressMode {
 	case ACCUMULATOR:
 		sim.Set8BitRegister(REGISTER_A, result)
+		break
 	//should cover all other cases
 	default:
 		sim.SetMemory(operands.returnAddress, result)
+		break
 	}
 	sim.computeCarryFlag(carrycheck)
 	sim.computeZeroFlag(result)
@@ -204,13 +206,15 @@ func INSTRUCTION_ROL_IMPLEMENTATION(sim *Simulator, operands decodeResults, inst
 	a := operands.operands[0].(uint8)
 	carrycheck := a&128 > 0
 	result = a << 1
-	result = result | 1&btou(sim.GetBit(REGISTER_STATUS, BITFLAG_STATUS_CARRY))
+	result = result | 1*btou(sim.GetBit(REGISTER_STATUS, BITFLAG_STATUS_CARRY))
 	switch instruction.addressMode {
 	case ACCUMULATOR:
-		sim.REGISTER_A = result
+		sim.Set8BitRegister(REGISTER_A, result)
+		break
 	//should cover all other cases
 	default:
-		sim.Memory[operands.returnAddress] = result
+		sim.SetMemory(operands.returnAddress, result)
+		break
 	}
 	sim.computeCarryFlag(carrycheck)
 	sim.computeZeroFlag(result)
@@ -412,7 +416,7 @@ func INSTRUCTION_RTI_IMPLEMENTATION(sim *Simulator, operands decodeResults, inst
 	stackaddrToPull = stackRegionStart + uint16(sim.REGISTER_STACKPOINTER)
 	addrhigh := sim.Memory[stackaddrToPull]
 	longaddr := uint16(addrhigh)<<8 | (uint16(addrlow) & 0xff)
-	sim.REGISTER_PC = longaddr
+	sim.Set16BitRegister(REGISTER_PC, longaddr)
 	sim.X_JUMPING = true
 }
 
@@ -430,7 +434,7 @@ func INSTRUCTION_RTS_IMPLEMENTATION(sim *Simulator, operands decodeResults, inst
 	stackaddrToPull = stackRegionStart + uint16(sim.REGISTER_STACKPOINTER)
 	addrhigh := sim.Memory[stackaddrToPull]
 	longaddr := uint16(addrhigh)<<8 | (uint16(addrlow) & 0xff)
-	sim.REGISTER_PC = longaddr + 1
+	sim.Set16BitRegister(REGISTER_PC, longaddr+1)
 	sim.X_JUMPING = true
 }
 
