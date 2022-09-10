@@ -15,4 +15,6 @@ func TestBootROM(t *testing.T) {
 		sim.Run(1)
 	}
 	sim.printMemoryAt(0x400, 400)
+	//TODO assert commodore is printed in memory.
+	t.Fail()
 }

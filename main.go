@@ -9,6 +9,8 @@ import (
 	"runtime"
 	"strconv"
 	"unicode"
+
+	"github.com/webview/webview"
 )
 
 type Simulator struct {
@@ -615,12 +617,40 @@ func GenerateInstructionMap(filePath string) map[OPCODE]InstructionData {
 }
 
 func main() {
-	fmt.Println("generate simulator from csv")
-	var filePath string = "6502ops.csv"
-	instructions := GenerateInstructionMap(filePath)
+	sim := NewSimulatorFromInstructionData()
+	//read commodore roms
+	sim.loadMemoryFromBinaryAtAddress("c64roms/kernal.901227-02.bin", 0xE000)
+	sim.loadMemoryFromBinaryAtAddress("c64roms/characters.901225-01.bin", 0xD000)
+	sim.loadMemoryFromBinaryAtAddress("c64roms/basic.901226-01.bin", 0xA000)
+	sim.reset()
+	sim.Verbose = true
 
-	fmt.Println("instantiate simulator")
-	simulator := NewSimulator(instructions)
-	fmt.Println(simulator.Instructions)
+	w := webview.New(true)
+	defer w.Destroy()
+	w.SetTitle("6502 emu")
+	w.SetSize(400, 300, webview.HintNone)
+	w.SetHtml(`<script>
+	function setpixel(x,y,r,g,b){
+	const can = document.getElementById("screenbuffer");
+	const ctx = can.getContext('2d');
+	ctx.fillStyle = "rgb(" + r +","+ g + "," + b + ")";
+	ctx.scale(2,2); 
+	ctx.fillRect(x, y, 1, 1);ctx.setTransform(1, 0, 0, 1, 0, 0);} 
+	</script> 
+	<canvas id="screenbuffer" width="320" height="200" style="border:1px solid #000000;">
+</canvas>`)
+	//start the simulator on another thread.
+	go func() {
+
+		//run 'forever'...
+		for i := 0; i < 1000000; i++ {
+			sim.Run(1)
+			w.Eval("setpixel(1,1,0,0,0)")
+		}
+		sim.printMemoryAt(0x400, 400)
+	}()
+
+	// start the webview on the main thread... and create a canvas to display the 1000 bytes of screen memory.
+	w.Run()
 
 }

@@ -33,3 +33,15 @@ func (sim *Simulator) computeCarryFlag(carryTrue bool) {
 		sim.ClearBit(REGISTER_STATUS, BITFLAG_STATUS_CARRY)
 	}
 }
+
+func NewSimulatorFromInstructionData() *Simulator {
+	var filePath string = "6502ops.csv"
+	instructions := GenerateInstructionMap(filePath)
+	sim := NewSimulator(instructions)
+	//set reset vector to 0000 because all tests use 0 as start.
+	sim.Memory[0xFFFC] = 0
+	sim.Memory[0xFFFD] = 0
+	sim.reset() //set PC to FFFC/FFFD
+	sim.setStatusFlagsDefault()
+	return sim
+}
