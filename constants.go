@@ -276,5 +276,8 @@ type memoryRegion struct {
 }
 
 var memoryMap = map[string]memoryRegion{
-	"STACK": {0x100, 0x1FF},
+	"STACK":  {0x100, 0x1FF},
+	"SCREEN": {0x0400, 0x07FF},
+	//TODO THIS ADDRESS IS WRONG, FIX THE KERNEL WRITING TO CHAR ROM.
+	"CHAR": {0xD0A0, 0xDFFF},
 }

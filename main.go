@@ -2,12 +2,15 @@ package main
 
 import (
 	"encoding/csv"
+	"encoding/json"
 	"fmt"
+	"image/color"
 	"log"
 	"os"
 	"reflect"
 	"runtime"
 	"strconv"
+	"time"
 	"unicode"
 
 	"github.com/webview/webview"
@@ -23,7 +26,8 @@ type Simulator struct {
 	Instructions          map[OPCODE]InstructionData
 	Memory                []uint8
 	X_JUMPING             bool
-	totalint              uint64
+	instructionCount      uint64
+	cycleCount            uint64
 	Verbose               bool
 }
 
@@ -58,7 +62,7 @@ func (sim *Simulator) executeInstruction(instr InstructionData) {
 	}
 	if sim.Verbose {
 
-		fmt.Println("PC:", sim.REGISTER_PC, "0x:", fmt.Sprintf("%x", sim.REGISTER_PC), "executing:", runtime.FuncForPC(reflect.ValueOf(opFunc).Pointer()).Name(), instr.mnemonic, " ", ADDRESS_MODE_NAME_MAP[instr.addressMode], operands, "total instructions:", sim.totalint)
+		fmt.Println("PC:", sim.REGISTER_PC, "0x:", fmt.Sprintf("%x", sim.REGISTER_PC), "executing:", runtime.FuncForPC(reflect.ValueOf(opFunc).Pointer()).Name(), instr.mnemonic, " ", ADDRESS_MODE_NAME_MAP[instr.addressMode], operands, "total instructions:", sim.instructionCount)
 	}
 	//execute
 	opFunc(sim, operands, instr)
@@ -348,7 +352,8 @@ func (sim *Simulator) SingleStep() {
 	if !sim.X_JUMPING {
 		sim.incrementPC(instruction.bytes)
 	}
-	sim.totalint = sim.totalint + 1
+	sim.instructionCount = sim.instructionCount + 1
+	sim.cycleCount = sim.cycleCount + uint64(instruction.cycles)
 }
 
 // TODO better api for trap detection options.
@@ -361,9 +366,24 @@ func (sim *Simulator) Run(instructions uint) {
 		}
 
 		if sim.REGISTER_PC == oldpc {
-			fmt.Println(sim.totalint)
+			fmt.Println(sim.instructionCount)
 			fmt.Println(sim.REGISTER_PC)
 			log.Panic("TRAP??")
+		}
+	}
+}
+
+func (sim *Simulator) RunCycles(cycleCountOffset uint64) {
+	//TODO screen buffer update?
+	target := sim.cycleCount + cycleCountOffset
+	for sim.cycleCount < target {
+		sim.SingleStep()
+		screenblanklow := target - 100
+		//we are in the blanking period
+		if sim.cycleCount >= screenblanklow && sim.cycleCount <= target {
+			sim.SetMemory(0xd012, 0)
+		} else {
+			sim.SetMemory(0xd012, 1)
 		}
 	}
 }
@@ -620,37 +640,77 @@ func main() {
 	sim := NewSimulatorFromInstructionData()
 	//read commodore roms
 	sim.loadMemoryFromBinaryAtAddress("c64roms/kernal.901227-02.bin", 0xE000)
-	sim.loadMemoryFromBinaryAtAddress("c64roms/characters.901225-01.bin", 0xD000)
+	//TODO THIS ADDRESS IS WRONG, FIX THE KERNEL WRITING TO CHAR ROM.
+	sim.loadMemoryFromBinaryAtAddress("c64roms/characters.901225-01.bin", 0xD0A0)
 	sim.loadMemoryFromBinaryAtAddress("c64roms/basic.901226-01.bin", 0xA000)
 	sim.reset()
-	sim.Verbose = true
+	//sim.Verbose = true
 
 	w := webview.New(true)
 	defer w.Destroy()
 	w.SetTitle("6502 emu")
 	w.SetSize(400, 300, webview.HintNone)
 	w.SetHtml(`<script>
-	function setpixel(x,y,r,g,b){
-	const can = document.getElementById("screenbuffer");
-	const ctx = can.getContext('2d');
-	ctx.fillStyle = "rgb(" + r +","+ g + "," + b + ")";
-	ctx.scale(2,2); 
-	ctx.fillRect(x, y, 1, 1);ctx.setTransform(1, 0, 0, 1, 0, 0);} 
+	function setpixels(pixels)
+	{
+		const can = document.getElementById("screenbuffer");
+		const ctx = can.getContext('2d');
+		for(let i = 0; i < pixels.length; i++)
+			{
+		let pixel = pixels[i];
+		if(pixel == 1){
+			ctx.fillStyle = "rgb(255,255,255,255)";
+		}else{
+			ctx.fillStyle = "rgb(0,0,0,255)";
+		}
+		let x = i/200
+		let y = i%200
+	ctx.fillRect(x, y, 1, 1);
+			}
+	}
 	</script> 
 	<canvas id="screenbuffer" width="320" height="200" style="border:1px solid #000000;">
 </canvas>`)
 	//start the simulator on another thread.
 	go func() {
-
+		time.Sleep(1 * time.Second)
 		//run 'forever'...
 		for i := 0; i < 1000000; i++ {
-			sim.Run(1)
-			w.Eval("setpixel(1,1,0,0,0)")
+			sim.RunCycles(20000)
+			if sim.Memory[0x431] == 0x3 {
+				fmt.Println("*")
+			} else {
+				fmt.Println("?????????????????????")
+			}
+			screenData := sim.GetColorDataForScreenInCharacterMode()
+			setCanvasWithColorData(w, screenData)
+			time.Sleep(50 * time.Millisecond)
 		}
-		sim.printMemoryAt(0x400, 400)
 	}()
 
 	// start the webview on the main thread... and create a canvas to display the 1000 bytes of screen memory.
 	w.Run()
 
+}
+
+//todo move to screen.go
+
+func setCanvasWithColorData(w webview.WebView, c []color.RGBA) {
+	bits := make([]uint16, 0)
+	for i := 0; i < 320; i++ {
+		for j := 0; j < 200; j++ {
+			pixel := c[(j*320)+i]
+			if pixel.R == 255 {
+				bits = append(bits, 1)
+			} else {
+				bits = append(bits, 0)
+			}
+		}
+	}
+	data, err := json.Marshal(bits)
+	if err != nil {
+		fmt.Printf("Error: %s", err.Error())
+	} else {
+		w.Eval("setpixels(" + string(data) + ")")
+	}
 }
