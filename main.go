@@ -29,6 +29,7 @@ type Simulator struct {
 	instructionCount      uint64
 	cycleCount            uint64
 	Verbose               bool
+	interrupted           bool
 }
 
 func NewSimulator(instructions map[OPCODE]InstructionData) *Simulator {
@@ -338,6 +339,50 @@ func (sim *Simulator) decodeOperands(instr InstructionData) decodeResults {
 	return decodeResults{outputOperands, returnAddress}
 }
 func (sim *Simulator) SingleStep() {
+
+	//check for interrupt
+	if (sim.interrupted) && (!sim.GetBit(REGISTER_STATUS, BITFLAG_STATUS_INTERRUPT_DISABLE)) {
+		sim.interrupted = false
+		fmt.Println("inter")
+		stackRegionStart := memoryMap["STACK"].start
+		pchigh := stackRegionStart + uint16(sim.REGISTER_STACKPOINTER)
+
+		sim.Memory[pchigh] = uint8(((sim.REGISTER_PC) >> 8) & 0xff)
+		//decrement sp
+		sim.Set8BitRegister(REGISTER_STACKPOINTER, sim.REGISTER_STACKPOINTER-1)
+
+		pclow := stackRegionStart + uint16(sim.REGISTER_STACKPOINTER)
+		sim.Memory[pclow] = uint8((sim.REGISTER_PC) & 0x00ff)
+
+		//decrement sp
+		sim.Set8BitRegister(REGISTER_STACKPOINTER, sim.REGISTER_STACKPOINTER-1)
+
+		//set break for push
+		sim.ClearBit(REGISTER_STATUS, BITFLAG_STATUS_B_FLAG)
+
+		//push status reg to stack
+		addrForStatus := stackRegionStart + uint16(sim.REGISTER_STACKPOINTER)
+		sim.Memory[addrForStatus] = sim.REGISTER_STATUS_P
+
+		//decrement sp
+		sim.Set8BitRegister(REGISTER_STACKPOINTER, sim.REGISTER_STACKPOINTER-1)
+		//load IRQ vector from FFFE/F to pc
+
+		// set break for push
+		sim.SetBit(REGISTER_STATUS, BITFLAG_STATUS_B_FLAG)
+		// set interupt disable flag high
+		sim.SetBit(REGISTER_STATUS, BITFLAG_STATUS_INTERRUPT_DISABLE)
+
+		addrlow := sim.Memory[0xFFFE]
+		addrhigh := sim.Memory[0xFFFF]
+		longaddr := uint16(addrhigh)<<8 | (uint16(addrlow) & 0xff)
+		sim.REGISTER_PC = longaddr
+		//TODO break flag seperate from status reg?
+
+		//TODO unsure if this should be true. BRK should jump to the interupt request handler -right?
+		sim.X_JUMPING = true
+	}
+
 	//fetch
 	//get instruction at program counter
 	currentOP := sim.Memory[sim.REGISTER_PC]
@@ -386,6 +431,7 @@ func (sim *Simulator) RunCycles(cycleCountOffset uint64) {
 			sim.SetMemory(0xd012, 1)
 		}
 	}
+	sim.interrupted = true
 }
 
 var InstructionFunctionMap = map[OPCODE]func(sim *Simulator, operands decodeResults, instruction InstructionData){
@@ -644,17 +690,18 @@ func main() {
 	sim.loadMemoryFromBinaryAtAddress("c64roms/characters.901225-01.bin", 0xD0A0)
 	sim.loadMemoryFromBinaryAtAddress("c64roms/basic.901226-01.bin", 0xA000)
 	sim.reset()
-	//sim.Verbose = true
+	sim.Verbose = true
 
 	w := webview.New(true)
 	defer w.Destroy()
 	w.SetTitle("6502 emu")
-	w.SetSize(400, 300, webview.HintNone)
+	w.SetSize(1300, 880, webview.HintNone)
 	w.SetHtml(`<script>
 	function setpixels(pixels)
 	{
 		const can = document.getElementById("screenbuffer");
 		const ctx = can.getContext('2d');
+		ctx.scale(4, 4);
 		for(let i = 0; i < pixels.length; i++)
 			{
 		let pixel = pixels[i];
@@ -667,9 +714,10 @@ func main() {
 		let y = i%200
 	ctx.fillRect(x, y, 1, 1);
 			}
+			ctx.setTransform(1, 0, 0, 1, 0, 0);
 	}
 	</script> 
-	<canvas id="screenbuffer" width="320" height="200" style="border:1px solid #000000;">
+	<canvas id="screenbuffer" width="1280" height="800" style="border:1px solid #000000;">
 </canvas>`)
 	//start the simulator on another thread.
 	go func() {
@@ -678,9 +726,9 @@ func main() {
 		for i := 0; i < 1000000; i++ {
 			sim.RunCycles(20000)
 			if sim.Memory[0x431] == 0x3 {
-				fmt.Println("*")
+				//	fmt.Println("*")
 			} else {
-				fmt.Println("?????????????????????")
+				//	fmt.Println("?????????????????????")
 			}
 			screenData := sim.GetColorDataForScreenInCharacterMode()
 			setCanvasWithColorData(w, screenData)
