@@ -337,8 +337,8 @@ func INSTRUCTION_BRK_IMPLEMENTATION(sim *Simulator, operands decodeResults, inst
 	sim.Set8BitRegister(REGISTER_STACKPOINTER, sim.REGISTER_STACKPOINTER-1)
 	//load IRQ vector from FFFE/F to pc
 
-	addrlow := sim.Memory[0xFFFE]
-	addrhigh := sim.Memory[0xFFFF]
+	addrlow := sim.ReadMemory(0xFFFE)
+	addrhigh := sim.ReadMemory(0xFFFF)
 	longaddr := uint16(addrhigh)<<8 | (uint16(addrlow) & 0xff)
 	sim.REGISTER_PC = longaddr
 	//set break flag high
@@ -379,7 +379,7 @@ func INSTRUCTION_PLA_IMPLEMENTATION(sim *Simulator, operands decodeResults, inst
 	sim.Set8BitRegister(REGISTER_STACKPOINTER, sim.REGISTER_STACKPOINTER+1)
 	stackaddrToPull := uint16(stackRegionStart) + uint16(sim.REGISTER_STACKPOINTER)
 
-	sim.Set8BitRegister(REGISTER_A, sim.Memory[stackaddrToPull])
+	sim.Set8BitRegister(REGISTER_A, sim.ReadMemory(stackaddrToPull))
 	sim.computeNegativeFlag(sim.REGISTER_A)
 	sim.computeZeroFlag(sim.REGISTER_A)
 }
@@ -391,7 +391,7 @@ func INSTRUCTION_PLP_IMPLEMENTATION(sim *Simulator, operands decodeResults, inst
 	sim.Set8BitRegister(REGISTER_STACKPOINTER, sim.REGISTER_STACKPOINTER+1)
 	stackaddrToPull := uint16(stackRegionStart) + uint16(sim.REGISTER_STACKPOINTER)
 
-	sim.Set8BitRegister(REGISTER_STATUS, sim.Memory[stackaddrToPull])
+	sim.Set8BitRegister(REGISTER_STATUS, sim.ReadMemory(stackaddrToPull))
 	//b and r flags should not be affected by PLP.
 	sim.setStatusFlagsDefault()
 }
@@ -404,17 +404,17 @@ func INSTRUCTION_RTI_IMPLEMENTATION(sim *Simulator, operands decodeResults, inst
 	sim.Set8BitRegister(REGISTER_STACKPOINTER, sim.REGISTER_STACKPOINTER+1)
 	stackaddrToPull := stackRegionStart + uint16(sim.REGISTER_STACKPOINTER)
 
-	sim.REGISTER_STATUS_P = sim.Memory[stackaddrToPull]
+	sim.REGISTER_STATUS_P = sim.ReadMemory(stackaddrToPull)
 	//increment sp
 	sim.Set8BitRegister(REGISTER_STACKPOINTER, sim.REGISTER_STACKPOINTER+1)
 	//now get program counter
 	stackaddrToPull = stackRegionStart + uint16(sim.REGISTER_STACKPOINTER)
-	addrlow := sim.Memory[stackaddrToPull]
+	addrlow := sim.ReadMemory(stackaddrToPull)
 	//increment sp
 	sim.Set8BitRegister(REGISTER_STACKPOINTER, sim.REGISTER_STACKPOINTER+1)
 	//now get program counter
 	stackaddrToPull = stackRegionStart + uint16(sim.REGISTER_STACKPOINTER)
-	addrhigh := sim.Memory[stackaddrToPull]
+	addrhigh := sim.ReadMemory(stackaddrToPull)
 	longaddr := uint16(addrhigh)<<8 | (uint16(addrlow) & 0xff)
 	sim.Set16BitRegister(REGISTER_PC, longaddr)
 	sim.X_JUMPING = true
@@ -427,12 +427,12 @@ func INSTRUCTION_RTS_IMPLEMENTATION(sim *Simulator, operands decodeResults, inst
 	sim.Set8BitRegister(REGISTER_STACKPOINTER, sim.REGISTER_STACKPOINTER+1)
 	//now get program counter
 	stackaddrToPull := stackRegionStart + uint16(sim.REGISTER_STACKPOINTER)
-	addrlow := sim.Memory[stackaddrToPull]
+	addrlow := sim.ReadMemory(stackaddrToPull)
 	//increment sp
 	sim.Set8BitRegister(REGISTER_STACKPOINTER, sim.REGISTER_STACKPOINTER+1)
 	//now get program counter
 	stackaddrToPull = stackRegionStart + uint16(sim.REGISTER_STACKPOINTER)
-	addrhigh := sim.Memory[stackaddrToPull]
+	addrhigh := sim.ReadMemory(stackaddrToPull)
 	longaddr := uint16(addrhigh)<<8 | (uint16(addrlow) & 0xff)
 	sim.Set16BitRegister(REGISTER_PC, longaddr+1)
 	sim.X_JUMPING = true
@@ -508,8 +508,8 @@ func INSTRUCTION_INY_IMPLEMENTATION(sim *Simulator, operands decodeResults, inst
 }
 func INSTRUCTION_INC_IMPLEMENTATION(sim *Simulator, operands decodeResults, instruction InstructionData) {
 	sim.SetMemory(operands.returnAddress, operands.operands[0].(uint8)+1)
-	sim.computeNegativeFlag(sim.Memory[operands.returnAddress])
-	sim.computeZeroFlag(sim.Memory[operands.returnAddress])
+	sim.computeNegativeFlag(sim.ReadMemory(operands.returnAddress))
+	sim.computeZeroFlag(sim.ReadMemory(operands.returnAddress))
 }
 
 func INSTRUCTION_JMP_IMPLEMENTATION(sim *Simulator, operands decodeResults, instruction InstructionData) {

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
@@ -30,6 +31,7 @@ type Simulator struct {
 	cycleCount            uint64
 	Verbose               bool
 	interrupted           bool
+	currentKey            rune
 }
 
 func NewSimulator(instructions map[OPCODE]InstructionData) *Simulator {
@@ -39,8 +41,8 @@ func NewSimulator(instructions map[OPCODE]InstructionData) *Simulator {
 func (sim *Simulator) reset() {
 	//read from fffc and fffd
 	//then transfer control.
-	addrlow := sim.Memory[0xFFFC]
-	addrhigh := sim.Memory[0xFFFD]
+	addrlow := sim.ReadMemory(0xFFFC)
+	addrhigh := sim.ReadMemory(0xFFFD)
 	longaddr := uint16(addrhigh)<<8 | (uint16(addrlow) & 0xff)
 	sim.REGISTER_PC = longaddr
 }
@@ -216,105 +218,105 @@ func (sim *Simulator) decodeOperands(instr InstructionData) decodeResults {
 	//load 8bit constants into memory.
 	//not sure there will ever be a valid b operand.
 	case IMMEDIATE:
-		a = uint8(sim.Memory[sim.REGISTER_PC+1])
-		b = uint8(sim.Memory[sim.REGISTER_PC+2])
+		a = uint8(sim.ReadMemory(sim.REGISTER_PC + 1))
+		b = uint8(sim.ReadMemory(sim.REGISTER_PC + 2))
 		outputOperands = append(outputOperands, a, b)
 
 	case ZEROPAGE:
-		x0 := sim.Memory[sim.REGISTER_PC+1]
-		a = uint8(sim.Memory[x0])
+		x0 := sim.ReadMemory(sim.REGISTER_PC + 1)
+		a = (sim.ReadMemory(uint16(x0)))
 		outputOperands = append(outputOperands, a)
 		returnAddress = uint16(x0)
 
 	case ZEROPAGE_INDEXEDX:
-		x0 := sim.Memory[sim.REGISTER_PC+1] + sim.REGISTER_X
-		a = uint8(sim.Memory[x0])
+		x0 := sim.ReadMemory(sim.REGISTER_PC+1) + sim.REGISTER_X
+		a = (sim.ReadMemory(uint16(x0)))
 		outputOperands = append(outputOperands, a)
 		returnAddress = uint16(x0)
 	case ZEROPAGE_INDEXEDY:
-		x0 := sim.Memory[sim.REGISTER_PC+1] + sim.REGISTER_Y
-		a = uint8(sim.Memory[x0])
+		x0 := sim.ReadMemory(sim.REGISTER_PC+1) + sim.REGISTER_Y
+		a = (sim.ReadMemory(uint16(x0)))
 		outputOperands = append(outputOperands, a)
 		returnAddress = uint16(x0)
 
 	//address at absolute 16bit address
 	case ABSOLUTE:
 		//a will be LSB, b will be MSB since 6502 is little endian
-		a = uint8(sim.Memory[sim.REGISTER_PC+1])
-		b = uint8(sim.Memory[sim.REGISTER_PC+2])
+		a = sim.ReadMemory(sim.REGISTER_PC + 1)
+		b = sim.ReadMemory(sim.REGISTER_PC + 2)
 		//shift msb up 8 then or with a (and with 255 clears any upper  bits...)
 		longaddr = uint16(b)<<8 | (uint16(a) & 0xff)
-		output := sim.Memory[longaddr]
+		output := sim.ReadMemory(longaddr)
 		outputOperands = append(outputOperands, output)
 		returnAddress = longaddr
 
 	case ABSOLUTE_INDEXEDX:
 
 		//a will be LSB, b will be MSB since 6502 is little endian
-		a = uint8(sim.Memory[sim.REGISTER_PC+1])
-		b = uint8(sim.Memory[sim.REGISTER_PC+2])
+		a = sim.ReadMemory(sim.REGISTER_PC + 1)
+		b = sim.ReadMemory(sim.REGISTER_PC + 2)
 		//shift msb up 8 then or with a (and with 255 clears any upper  bits...)
 		longaddr = uint16(b)<<8 | (uint16(a) & 0xff)
 		b = sim.REGISTER_X
 		longaddr = longaddr + uint16(b)
-		output := sim.Memory[longaddr]
+		output := sim.ReadMemory(longaddr)
 		outputOperands = append(outputOperands, output)
 		returnAddress = longaddr
 
 	case ABSOLUTE_INDEXEDY:
 		//a will be LSB, b will be MSB since 6502 is little endian
-		a = uint8(sim.Memory[sim.REGISTER_PC+1])
-		b = uint8(sim.Memory[sim.REGISTER_PC+2])
+		a = sim.ReadMemory(sim.REGISTER_PC + 1)
+		b = sim.ReadMemory(sim.REGISTER_PC + 2)
 		//shift msb up 8 then or with a (and with 255 clears any upper  bits...)
 		longaddr = uint16(b)<<8 | (uint16(a) & 0xff)
 		b = sim.REGISTER_Y
 		longaddr = longaddr + uint16(b)
-		output := sim.Memory[longaddr]
+		output := sim.ReadMemory(longaddr)
 		outputOperands = append(outputOperands, output)
 		returnAddress = longaddr
 
 	case INDEXED_INDIRECT_X:
 		//zp address
-		a = uint8(sim.Memory[sim.REGISTER_PC+1])
+		a = sim.ReadMemory(sim.REGISTER_PC + 1)
 		//then offset by x
 		addr := a + sim.REGISTER_X
 
 		//get address at a+x
-		lowbyte := sim.Memory[addr]
-		highByte := sim.Memory[addr+1]
+		lowbyte := sim.ReadMemory(uint16(addr))
+		highByte := sim.ReadMemory(uint16(addr + 1))
 		//now combine bytes highLow and return that as the final address for the jump
 		longaddr = uint16(highByte)<<8 | (uint16(lowbyte) & 0xff)
 		//now indirect
-		output := sim.Memory[longaddr]
+		output := sim.ReadMemory(longaddr)
 		outputOperands = append(outputOperands, output)
 		returnAddress = longaddr
 
 	case INDIRECT_INDEXED_Y:
 		//zp address indirect
-		a = uint8(sim.Memory[sim.REGISTER_PC+1])
+		a = sim.ReadMemory(sim.REGISTER_PC + 1)
 
 		//get address at a+y
-		lowbyte := sim.Memory[a]
-		highbyte := sim.Memory[a+1]
+		lowbyte := sim.ReadMemory(uint16(a))
+		highbyte := sim.ReadMemory(uint16(a + 1))
 
 		//now combine bytes highLow and return that as the final address for the jump
 		longaddr = (uint16(highbyte)<<8 | (uint16(lowbyte) & 0xff)) + uint16(sim.REGISTER_Y)
 		//now indirect
-		output := sim.Memory[longaddr]
+		output := sim.ReadMemory(longaddr)
 		outputOperands = append(outputOperands, output)
 		returnAddress = longaddr
 
 		//only JMP will use INDIRECT this address mode.
 	case INDIRECT:
 		//a will be LSB, b will be MSB since 6502 is little endian
-		a = uint8(sim.Memory[sim.REGISTER_PC+1])
-		b = uint8(sim.Memory[sim.REGISTER_PC+2])
+		a = sim.ReadMemory(sim.REGISTER_PC + 1)
+		b = sim.ReadMemory(sim.REGISTER_PC + 2)
 		//shift msb up 8 then or with a (and with 255 clears any upper  bits...)
 		longaddr = uint16(b)<<8 | (uint16(a) & 0xff)
 
 		//now we indirect.
-		lowbyte := sim.Memory[longaddr]
-		highByte := sim.Memory[longaddr+1]
+		lowbyte := sim.ReadMemory(longaddr)
+		highByte := sim.ReadMemory(longaddr + 1)
 		//now combine bytes highLow and return that as the final address for the jump
 		longaddr = uint16(highByte)<<8 | (uint16(lowbyte) & 0xff)
 		outputOperands = append(outputOperands, longaddr)
@@ -323,7 +325,7 @@ func (sim *Simulator) decodeOperands(instr InstructionData) decodeResults {
 	case RELATIVE:
 		//in the case of relative its a signed byte max of 127, min -127 from pc.
 		//convert to signed.
-		offset := int8(sim.Memory[sim.REGISTER_PC+1])
+		offset := int8(sim.ReadMemory(sim.REGISTER_PC + 1))
 		jumpAddr := uint16(offset) + uint16(sim.REGISTER_PC+2)
 		outputOperands = append(outputOperands, jumpAddr)
 		returnAddress = longaddr
@@ -343,7 +345,7 @@ func (sim *Simulator) SingleStep() {
 	//check for interrupt
 	if (sim.interrupted) && (!sim.GetBit(REGISTER_STATUS, BITFLAG_STATUS_INTERRUPT_DISABLE)) {
 		sim.interrupted = false
-		fmt.Println("inter")
+		//fmt.Println("inter")
 		stackRegionStart := memoryMap["STACK"].start
 		pchigh := stackRegionStart + uint16(sim.REGISTER_STACKPOINTER)
 
@@ -373,8 +375,8 @@ func (sim *Simulator) SingleStep() {
 		// set interupt disable flag high
 		sim.SetBit(REGISTER_STATUS, BITFLAG_STATUS_INTERRUPT_DISABLE)
 
-		addrlow := sim.Memory[0xFFFE]
-		addrhigh := sim.Memory[0xFFFF]
+		addrlow := sim.ReadMemory(0xFFFE)
+		addrhigh := sim.ReadMemory(0xFFFF)
 		longaddr := uint16(addrhigh)<<8 | (uint16(addrlow) & 0xff)
 		sim.REGISTER_PC = longaddr
 		//TODO break flag seperate from status reg?
@@ -682,7 +684,55 @@ func GenerateInstructionMap(filePath string) map[OPCODE]InstructionData {
 	return result
 }
 
+func getColByte(rowbyte byte, key rune) int {
+	rowArray := make([]uint8, 8)
+	rowbyte = ^rowbyte
+	rowbyte = rowbyte & 0xff
+	scanCode := getScanCode(key)
+	rowNum := scanCode & 0x38 >> 3
+	rowArray[rowNum] = rowArray[rowNum] | 1<<(scanCode&7)
+	resultByte := 0
+	for i := 0; i < 8; i++ {
+		cre := ((1 << i) & rowbyte) != 0
+		if cre {
+			resultByte = resultByte | int(rowArray[i])
+		}
+
+	}
+	resultByte = ^resultByte
+	resultByte = resultByte & 0xff
+	return resultByte
+}
+
+func getScanCode(key rune) uint8 {
+	switch int(key) {
+	case int('p'):
+		return 41
+	case int('r'):
+		return 17
+	case int('i'):
+		return 33
+	case int('n'):
+		return 39
+	case int('t'):
+		return 22
+	case int('1'):
+		return 56
+	case int('0'):
+		return 35
+	case int('+'):
+		return 40
+	case int(' '):
+		return 60
+	case 10:
+		return 1
+	}
+	return 255
+}
+
 func main() {
+	reader := bufio.NewReader(os.Stdin)
+
 	sim := NewSimulatorFromInstructionData()
 	//read commodore roms
 	sim.loadMemoryFromBinaryAtAddress("c64roms/kernal.901227-02.bin", 0xE000)
@@ -690,7 +740,19 @@ func main() {
 	sim.loadMemoryFromBinaryAtAddress("c64roms/characters.901225-01.bin", 0xD0A0)
 	sim.loadMemoryFromBinaryAtAddress("c64roms/basic.901226-01.bin", 0xA000)
 	sim.reset()
-	sim.Verbose = true
+	//sim.Verbose = true
+
+	go func() {
+		for true {
+			sim.currentKey = 255
+			time.Sleep(100 * time.Millisecond)
+			key := readKey(reader)
+			fmt.Println(key)
+			//convert the keycode typed into a mask byte.
+			sim.currentKey = key
+			time.Sleep(100 * time.Millisecond)
+		}
+	}()
 
 	w := webview.New(true)
 	defer w.Destroy()
@@ -726,13 +788,13 @@ func main() {
 		for i := 0; i < 1000000; i++ {
 			sim.RunCycles(20000)
 			if sim.Memory[0x431] == 0x3 {
-				//	fmt.Println("*")
+
 			} else {
 				//	fmt.Println("?????????????????????")
 			}
 			screenData := sim.GetColorDataForScreenInCharacterMode()
 			setCanvasWithColorData(w, screenData)
-			time.Sleep(50 * time.Millisecond)
+			time.Sleep(40 * time.Millisecond)
 		}
 	}()
 
@@ -742,6 +804,15 @@ func main() {
 }
 
 //todo move to screen.go
+
+func readKey(reader *bufio.Reader) rune {
+
+	char, _, err := reader.ReadRune()
+	if err != nil {
+		fmt.Println("Error reading key: ", err)
+	}
+	return char
+}
 
 func setCanvasWithColorData(w webview.WebView, c []color.RGBA) {
 	bits := make([]uint16, 0)

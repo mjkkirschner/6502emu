@@ -37,3 +37,11 @@ func (sim *Simulator) loadMemoryFromBinaryAtAddress(filePath string, address int
 		j++
 	}
 }
+
+func (sim *Simulator) ReadMemory(address uint16) uint8 {
+	if address == 0xdc01 {
+		return uint8(getColByte(sim.Memory[0xdc00], sim.currentKey))
+	} else {
+		return sim.Memory[address]
+	}
+}
